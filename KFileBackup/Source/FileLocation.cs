@@ -27,15 +27,15 @@ namespace KFileBackup
 		/// <summary>Gets the full path to this instance of a file.</summary>
 		public string FullPath { get; }
 
+		/// <summary>Gets whether this file location is from a read-only location (drive, folder, etc.), and thus unable to change.</summary>
+		/// <remarks>This is not the read-only NTFS attribute, this is if the file lives on truly read-only media (DVD/CD, ROM, etc.).</remarks>
+		public bool IsFromReadOnlyLocation { get; }
+
 		/// <summary>Gets the file name (not the full path) of this instance of a file.</summary>
 		public string FileName
 		{
 			get { return Path.GetFileName(this.FullPath); }
 		}
-
-		/// <summary>Gets whether this file location is from a read-only location (drive, folder, etc.), and thus unable to change.</summary>
-		/// <remarks>This is not the read-only NTFS attribute, this is if the file lives on truly read-only media (DVD/CD, ROM, etc.).</remarks>
-		public bool IsFromReadOnlyLocation { get; }
 
 		#endregion Properties
 
@@ -43,7 +43,7 @@ namespace KFileBackup
 
 		public override int GetHashCode()
 		{
-			return this.FullPath.GetHashCode();
+			return this.FullPath.ToLower().GetHashCode();
 		}
 
 		public override bool Equals(object obj)

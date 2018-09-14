@@ -40,15 +40,6 @@ namespace KFileBackup
 
 		#region Methods
 
-		/// <summary>
-		/// Creates a new <see cref="FileItem"/> based on the given path on disk.
-		/// </summary>
-		public static FileItem CreateFromPath(string path, bool isFromReadOnlyLocation)
-		{
-			path = Path.GetFullPath(path);
-			return new FileItem(Hash.GetFileHash(path), new FileLocation(path, isFromReadOnlyLocation));
-		}
-
 		public override int GetHashCode()
 		{
 			return this.Hash.GetHashCode();
@@ -64,6 +55,19 @@ namespace KFileBackup
 			if (other == null) { return false; }
 			return this.Hash.Equals(other.Hash);
 		}
+
+		#region Helpers
+
+		/// <summary>
+		/// Creates a new <see cref="FileItem"/> based on the given path on disk.
+		/// </summary>
+		public static FileItem CreateFromPath(string path, bool isFromReadOnlyLocation)
+		{
+			path = Path.GetFullPath(path);
+			return new FileItem(Hash.GetFileHash(path), new FileLocation(path, isFromReadOnlyLocation));
+		}
+
+		#endregion Helpers
 
 		#endregion Methods
 	}

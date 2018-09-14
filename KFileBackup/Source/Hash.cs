@@ -31,19 +31,6 @@ namespace KFileBackup
 
 		#region Methods
 
-		/// <summary>
-		/// Gets the hash of a given file's contents.
-		/// </summary>
-		public static Hash GetFileHash(string file)
-		{
-			using (BufferedStream stream = new BufferedStream(File.OpenRead(file), 1200000))
-			{
-				SHA1Managed sha = new SHA1Managed();
-				byte[] hash = sha.ComputeHash(stream);
-				return new Hash(BitConverter.ToInt32(hash, 0));
-			}
-		}
-
 		public override int GetHashCode()
 		{
 			return this.Value;
@@ -59,6 +46,23 @@ namespace KFileBackup
 		{
 			return (this.Value == other.Value);
 		}
+
+		#region Helpers
+
+		/// <summary>
+		/// Gets the hash of a given file's contents.
+		/// </summary>
+		public static Hash GetFileHash(string file)
+		{
+			using (BufferedStream stream = new BufferedStream(File.OpenRead(file), 1200000))
+			{
+				SHA1Managed sha = new SHA1Managed();
+				byte[] hash = sha.ComputeHash(stream);
+				return new Hash(BitConverter.ToInt32(hash, 0));
+			}
+		}
+
+		#endregion Helpers
 
 		#endregion Methods
 	}
