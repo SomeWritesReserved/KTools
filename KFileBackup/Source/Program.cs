@@ -9,14 +9,41 @@ namespace KFileBackup
 {
 	public class Program
 	{
+		#region Fields
+
+		private const string catalogFileName = "files.bkc";
+
+		#endregion Fields
+
 		#region Methods
 
 		public static void Main(string[] args)
 		{
 			try
 			{
-				Program.log("Starting...");
-				Program.runTests();
+				if (args.FirstOrDefault() == "test")
+				{
+					Program.log("Running tests...");
+					Program.runTests();
+				}
+				else if (args.FirstOrDefault() == "catalog")
+				{
+					bool isFromReadOnlyLocation = args.Contains("--readonly");
+					string directory = args.Last();
+					if (!Path.IsPathRooted(directory)) { throw new ArgumentException("Directory must be a full, rooted path."); }
+					if (!Directory.Exists(directory)) { throw new ArgumentException("Directory does not exist."); }
+
+					FileItemCatalog fileItemCatalog = new FileItemCatalog();
+					if (File.Exists(Program.catalogFileName))
+					{
+						Program.log("Reading catalog from saved file...");
+						fileItemCatalog.ReadCatalogFromFile(Program.catalogFileName);
+					}
+
+					Program.log("Cataloging {0}...", directory);
+					Program.catalogFilesInDirectory(fileItemCatalog, directory, "*", isFromReadOnlyLocation);
+					fileItemCatalog.SaveCatalogToFile(Program.catalogFileName);
+				}
 			}
 			catch (Exception exception)
 			{
@@ -34,39 +61,38 @@ namespace KFileBackup
 			Console.ReadKey(true);
 		}
 
-		private static FileItemCatalog catalogFilesInDirectory(string directory, string searchPattern, bool isFromReadOnlyLocation)
+		private static void catalogFilesInDirectory(FileItemCatalog fileItemCatalog, string directory, string searchPattern, bool isFromReadOnlyLocation)
 		{
-			Program.log("Finding files...");
+			Program.log("Finding files...", directory);
 			string[] allFiles = Directory.GetFiles(directory, searchPattern, SearchOption.AllDirectories);
 			Program.log("Found {0} files.", allFiles.Length);
 
+			int processedFileCount = 0;
+			int existingFiles = 0;
+			int addedFiles = 0;
+			int mergedFiles = 0;
 			Program.log("Getting file hashes...");
-			FileItemCatalog fileItemCatalog = new FileItemCatalog();
-			int count = 0;
 			foreach (string file in allFiles)
 			{
-				FileItem newFileItem;
+				FileItem fileItem;
 				try
 				{
-					newFileItem = FileItem.CreateFromPath(file, isFromReadOnlyLocation);
+					fileItem = FileItem.CreateFromPath(file, isFromReadOnlyLocation);
 				}
 				catch (IOException)
 				{
 					Program.log("Couldn't access file, ignoring. {0}", file);
 					continue;
 				}
-				if (fileItemCatalog.TryGetValue(newFileItem.Hash, out FileItem existingFileItem))
-				{
-					existingFileItem.FileLocations.Add(newFileItem.FileLocations.Single());
-				}
-				else
-				{
-					fileItemCatalog.Add(newFileItem);
-				}
-				count++;
-				if ((count % 20) == 0) { Program.log("{0:0.0%} - {1} of {2} files...", (double)count / (double)allFiles.Length, count, allFiles.Length); }
+				AddOrMergeResult addOrMergeResult = fileItemCatalog.AddOrMerge(fileItem);
+				if (addOrMergeResult == AddOrMergeResult.None) { existingFiles++; }
+				if (addOrMergeResult == AddOrMergeResult.Added) { addedFiles++; }
+				if (addOrMergeResult == AddOrMergeResult.Merged) { mergedFiles++; }
+
+				processedFileCount++;
+				if ((processedFileCount % 20) == 0) { Program.log("{0:0.0%} - {1} of {2} files...", (double)processedFileCount / (double)allFiles.Length, processedFileCount, allFiles.Length); }
 			}
-			return fileItemCatalog;
+			Program.log("Cataloged files (found {0}: {1} existing, {2} new, {3} merged)", allFiles.Length, existingFiles, addedFiles, mergedFiles);
 		}
 
 		#region Helpers
