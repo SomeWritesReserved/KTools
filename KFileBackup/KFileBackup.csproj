@@ -41,12 +41,12 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Source\FileItem.cs" />
-    <Compile Include="Source\FileItemCollection.cs" />
+    <Compile Include="Source\FileItemCatalog.cs" />
     <Compile Include="Source\FileLocation.cs" />
-    <Compile Include="Source\FileDatabase.cs" />
     <Compile Include="Source\Hash.cs" />
     <Compile Include="Source\Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Source\Tests\FileLocationTest.cs" />
     <Compile Include="Source\Tests\HashTest.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 
 namespace KFileBackup
@@ -15,6 +16,7 @@ namespace KFileBackup
 			try
 			{
 				Program.log("Starting new process");
+				Program.runTests();
 			}
 			catch (Exception exception)
 			{
@@ -26,9 +28,10 @@ namespace KFileBackup
 			}
 			finally
 			{
-				Program.log("Exited");
+				Program.log("Done");
 				Program.log();
 			}
+			Console.ReadKey(true);
 		}
 
 		private static FileItemCatalog catalogFilesInDirectory(string directory, string searchPattern, bool isFromReadOnlyLocation)
@@ -66,6 +69,33 @@ namespace KFileBackup
 			return fileItemCatalog;
 		}
 
+		#region Helpers
+
+		private static void runTests()
+		{
+			foreach (Type testSuiteType in Assembly.GetExecutingAssembly().GetTypes()
+				.Where((type) => type.Namespace == "KFileBackup.Tests" && type.Name != "Assert"))
+			{
+				Program.log("Testing {0}", testSuiteType.Name);
+				foreach (MethodInfo testMethod in testSuiteType.GetMethods(BindingFlags.Static | BindingFlags.Public))
+				{
+					try
+					{
+						testMethod.Invoke(null, null);
+						Program.log("  {0}", testMethod.Name);
+					}
+					catch (ApplicationException applicationException)
+					{
+						Program.log("  {0} FAILED: {1}", testMethod.Name, applicationException.Message);
+					}
+					catch (Exception exception)
+					{
+						Program.log("  {0} ERROR: {1} - {2}", testMethod.Name, exception.GetType().Name, exception.Message);
+					}
+				}
+			}
+		}
+
 		private static void log()
 		{
 			Program.log(string.Empty);
@@ -81,6 +111,8 @@ namespace KFileBackup
 		{
 			Program.log(string.Format(message, args));
 		}
+
+		#endregion Helpers
 
 		#endregion Methods
 	}

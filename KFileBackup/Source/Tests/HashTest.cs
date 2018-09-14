@@ -64,5 +64,15 @@ namespace KFileBackup.Tests
 			if (expected.Equals(actual)) { throw new ApplicationException("expected incorrectly equals actual"); }
 			if (actual.Equals(expected)) { throw new ApplicationException("actual incorrectly equals expected"); }
 		}
+
+		public static void IsTrue(bool actual)
+		{
+			if (!actual) { throw new ApplicationException("expected true but wasn't"); }
+		}
+
+		public static void IsFalse(bool actual)
+		{
+			if (actual) { throw new ApplicationException("expected false but wasn't"); }
+		}
 	}
 }
