@@ -12,67 +12,63 @@ namespace KFileBackup
 
 		public static void Main(string[] args)
 		{
-			if (args.Length != 1 || !args[0].Contains(";")) { return; }
-
-			string argument = args[0].Split(';')[0];
-			string value = args[0].Split(';')[1];
-
-			//Program.catalogLocalFiles(value, "*");
-			FileDatabase fileDatabase = new FileDatabase();
-			fileDatabase.AddFilesFromDatabaseFile("local.bkdb");
-
-			var broken = fileDatabase.FileItems.Where((f) => f.FileLocations.Count <= 0).ToArray();
-			var dups = fileDatabase.FileItems.Where((f) => f.FileLocations.Count > 1).ToArray();
+			try
+			{
+				Program.log("Starting new process");
+			}
+			catch (Exception exception)
+			{
+				Program.log("===Fatal error===");
+				Program.log(exception.GetType().Name);
+				Program.log(exception.Message);
+				Program.log(exception.StackTrace);
+				Program.log("===Fatal error===");
+			}
+			finally
+			{
+				Program.log("Exited");
+				Program.log();
+			}
 		}
 
-		private static void catalogLocalFiles(string path, string searchPattern)
+		private static FileItemCatalog catalogFilesInDirectory(string directory, string searchPattern, bool isFromReadOnlyLocation)
 		{
 			Program.log("Finding files...");
-			string[] allFiles = Directory.GetFiles(path, searchPattern, SearchOption.AllDirectories);
+			string[] allFiles = Directory.GetFiles(directory, searchPattern, SearchOption.AllDirectories);
 			Program.log("Found {0} files.", allFiles.Length);
 
 			Program.log("Getting file hashes...");
-			FileItemCollection fileItems = new FileItemCollection();
+			FileItemCatalog fileItemCatalog = new FileItemCatalog();
 			int count = 0;
 			foreach (string file in allFiles)
 			{
 				FileItem newFileItem;
 				try
 				{
-					newFileItem = FileItem.CreateFromPath(file, false);
+					newFileItem = FileItem.CreateFromPath(file, isFromReadOnlyLocation);
 				}
 				catch (IOException)
 				{
 					Program.log("Couldn't access file, ignoring. {0}", file);
 					continue;
 				}
-				if (fileItems.TryGetValue(newFileItem.Hash, out FileItem existingFileItem))
+				if (fileItemCatalog.TryGetValue(newFileItem.Hash, out FileItem existingFileItem))
 				{
 					existingFileItem.FileLocations.Add(newFileItem.FileLocations.Single());
 				}
 				else
 				{
-					fileItems.Add(newFileItem);
+					fileItemCatalog.Add(newFileItem);
 				}
 				count++;
 				if ((count % 20) == 0) { Program.log("{0:0.0%} - {1} of {2} files...", (double)count / (double)allFiles.Length, count, allFiles.Length); }
 			}
+			return fileItemCatalog;
+		}
 
-			Program.log("Saving database...");
-			using (BinaryWriter binaryWriter = new BinaryWriter(new FileStream("local.bkdb", FileMode.Create, FileAccess.Write)))
-			{
-				binaryWriter.Write(fileItems.Count);
-				foreach (FileItem fileItem in fileItems)
-				{
-					binaryWriter.Write(fileItem.Hash.Value);
-					binaryWriter.Write(fileItem.FileLocations.Count);
-					foreach (FileLocation fileLocation in fileItem.FileLocations)
-					{
-						binaryWriter.Write(fileLocation.FullPath);
-						binaryWriter.Write(fileLocation.IsFromReadOnlyLocation);
-					}
-				}
-			}
+		private static void log()
+		{
+			Program.log(string.Empty);
 		}
 
 		private static void log(string message)
