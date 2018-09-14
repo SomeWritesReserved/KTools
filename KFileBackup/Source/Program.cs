@@ -41,7 +41,7 @@ namespace KFileBackup
 					}
 
 					Program.log("Cataloging {0}...", directory);
-					Program.catalogFilesInDirectory(fileItemCatalog, directory, "*", isFromReadOnlyLocation);
+					fileItemCatalog.CatalogFilesInDirectory(directory, "*", isFromReadOnlyLocation, Program.log);
 					fileItemCatalog.SaveCatalogToFile(Program.catalogFileName);
 				}
 			}
@@ -59,40 +59,6 @@ namespace KFileBackup
 				Program.log();
 			}
 			Console.ReadKey(true);
-		}
-
-		private static void catalogFilesInDirectory(FileItemCatalog fileItemCatalog, string directory, string searchPattern, bool isFromReadOnlyLocation)
-		{
-			Program.log("Finding files...", directory);
-			string[] allFiles = Directory.GetFiles(directory, searchPattern, SearchOption.AllDirectories);
-			Program.log("Found {0} files.", allFiles.Length);
-
-			int processedFileCount = 0;
-			int existingFiles = 0;
-			int addedFiles = 0;
-			int mergedFiles = 0;
-			Program.log("Getting file hashes...");
-			foreach (string file in allFiles)
-			{
-				FileItem fileItem;
-				try
-				{
-					fileItem = FileItem.CreateFromPath(file, isFromReadOnlyLocation);
-				}
-				catch (IOException)
-				{
-					Program.log("Couldn't access file, ignoring. {0}", file);
-					continue;
-				}
-				AddOrMergeResult addOrMergeResult = fileItemCatalog.AddOrMerge(fileItem);
-				if (addOrMergeResult == AddOrMergeResult.None) { existingFiles++; }
-				if (addOrMergeResult == AddOrMergeResult.Added) { addedFiles++; }
-				if (addOrMergeResult == AddOrMergeResult.Merged) { mergedFiles++; }
-
-				processedFileCount++;
-				if ((processedFileCount % 20) == 0) { Program.log("{0:0.0%} - {1} of {2} files...", (double)processedFileCount / (double)allFiles.Length, processedFileCount, allFiles.Length); }
-			}
-			Program.log("Cataloged files (found {0}: {1} existing, {2} new, {3} merged)", allFiles.Length, existingFiles, addedFiles, mergedFiles);
 		}
 
 		#region Helpers

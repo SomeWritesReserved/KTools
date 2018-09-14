@@ -43,7 +43,7 @@ namespace KFileBackup
 		{
 			if (this.TryGetValue(fileItem.Hash, out FileItem existingFileItem))
 			{
-				AddOrMergeResult addOrMergeResult = AddOrMergeResult.None;
+				AddOrMergeResult addOrMergeResult = AddOrMergeResult.Same;
 				foreach (FileLocation fileLocation in fileItem.FileLocations)
 				{
 					if (existingFileItem.FileLocations.Add(fileLocation)) { addOrMergeResult = AddOrMergeResult.Merged; }
@@ -122,22 +122,78 @@ namespace KFileBackup
 			}
 		}
 
+		/// <summary>
+		/// Finds all files in a directory and adds them to this catalog. Returns the results for each file found.
+		/// </summary>
+		public Dictionary<string, CatalogFileResult> CatalogFilesInDirectory(string directory, string searchPattern, bool isFromReadOnlyLocation, Action<string> log)
+		{
+			log.Invoke("Finding files...");
+			string[] allFiles = Directory.GetFiles(directory, searchPattern, SearchOption.AllDirectories);
+			log.Invoke($"Found {allFiles.Length} files.");
+
+			log.Invoke("Getting file hashes...");
+			int processedFileCount = 0;
+			Dictionary<string, CatalogFileResult> catalogFileResults = new Dictionary<string, CatalogFileResult>(StringComparer.OrdinalIgnoreCase);
+			foreach (string file in allFiles)
+			{
+				FileItem fileItem;
+				CatalogFileResult catalogFileResult;
+				try
+				{
+					fileItem = FileItem.CreateFromPath(file, isFromReadOnlyLocation);
+					AddOrMergeResult addOrMergeResult = this.AddOrMerge(fileItem);
+					catalogFileResult = (CatalogFileResult)addOrMergeResult;
+					log.Invoke($"{addOrMergeResult}. {file}");
+				}
+				catch (IOException ioException)
+				{
+					catalogFileResult = CatalogFileResult.Skipped;
+					log.Invoke($"Skipped ({ioException.Message}). {file}");
+				}
+
+				catalogFileResults.Add(file, catalogFileResult);
+				processedFileCount++;
+				if ((processedFileCount % 20) == 0) { log.Invoke($"{processedFileCount / (double)allFiles.Length:0.0%} - {processedFileCount} of {allFiles.Length} files..."); }
+			}
+			log.Invoke($"Cataloged {allFiles.Length} files ({catalogFileResults.Count((kvp) => kvp.Value == CatalogFileResult.Same)} same, {catalogFileResults.Count((kvp) => kvp.Value == CatalogFileResult.Added)} new, {catalogFileResults.Count((kvp) => kvp.Value == CatalogFileResult.Merged)} merged. {catalogFileResults.Count((kvp) => kvp.Value == CatalogFileResult.Skipped)} skipped).");
+			return catalogFileResults;
+		}
+
 		#endregion Helpers
 
 		#endregion Methods
 	}
 
 	/// <summary>
-	/// A value representing the result of <see cref="FileItemCatalog.AddOrMerge(FileItem)"/>, whether a
-	/// <see cref="FileItem"/> was newly added or merged with an existing <see cref="FileItem"/>.
+	/// A value representing the result of <see cref="FileItemCatalog.AddOrMerge"/>, whether a
+	/// <see cref="FileItem"/> already existed, was newly added, or was merged with an
+	/// existing <see cref="FileItem"/>.
 	/// </summary>
 	public enum AddOrMergeResult
 	{
-		/// <summary>No action was taken, everything was already identical.</summary>
-		None,
+		/// <summary>Everything was already identical, no action was taken.</summary>
+		Same = 0,
 		/// <summary>A new <see cref="FileItem"/> was added to the catalog.</summary>
-		Added,
+		Added = 1,
 		/// <summary>An existing <see cref="FileItem"/> was updated and merged.</summary>
-		Merged,
+		Merged = 2,
+	}
+
+	/// <summary>
+	/// A value representing the result of <see cref="FileItemCatalog.CatalogFilesInDirectory"/>, whether a
+	/// <see cref="FileItem"/> already existed, was newly added, was merged with an
+	/// existing <see cref="FileItem"/>, or skipped.
+	/// </summary>
+	/// <remarks>The enum values with the same name in <see cref="AddOrMergeResult"/> but have the same numeric values.</remarks>
+	public enum CatalogFileResult
+	{
+		/// <summary>Everything was already identical, no action was taken.</summary>
+		Same = 0,
+		/// <summary>A new <see cref="FileItem"/> was added to the catalog.</summary>
+		Added = 1,
+		/// <summary>An existing <see cref="FileItem"/> was updated and merged.</summary>
+		Merged = 2,
+		/// <summary>Something went wrong (like couldn't read the file), and the file was skipped.</summary>
+		Skipped = 3,
 	}
 }

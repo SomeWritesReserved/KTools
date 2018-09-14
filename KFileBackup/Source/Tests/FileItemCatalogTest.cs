@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 
@@ -119,7 +120,7 @@ namespace KFileBackup.Tests
 			{
 				FileItemCatalog fileItemCatalog1 = new FileItemCatalog();
 				Assert.AreEqual(AddOrMergeResult.Added, fileItemCatalog1.AddOrMerge(new FileItem(new Hash(134), new FileLocation(@"C:\file1", true))));
-				Assert.AreEqual(AddOrMergeResult.None, fileItemCatalog1.AddOrMerge(new FileItem(new Hash(134), new FileLocation(@"C:\file1", true))));
+				Assert.AreEqual(AddOrMergeResult.Same, fileItemCatalog1.AddOrMerge(new FileItem(new Hash(134), new FileLocation(@"C:\file1", true))));
 				Assert.AreEqual(1, fileItemCatalog1.Count);
 				Assert.AreEqual(new FileItem(new Hash(134)), fileItemCatalog1.First());
 				{
@@ -141,7 +142,7 @@ namespace KFileBackup.Tests
 				FileItem fileItem2 = new FileItem(new Hash(123));
 				fileItem2.FileLocations.Add(new FileLocation(@"C:\file2", false));
 				Assert.AreEqual(AddOrMergeResult.Added, fileItemCatalog1.AddOrMerge(fileItem1));
-				Assert.AreEqual(AddOrMergeResult.None, fileItemCatalog1.AddOrMerge(fileItem2));
+				Assert.AreEqual(AddOrMergeResult.Same, fileItemCatalog1.AddOrMerge(fileItem2));
 				Assert.AreEqual(1, fileItemCatalog1.Count);
 				Assert.AreEqual(2, fileItemCatalog1.Single().FileLocations.Count);
 			}
@@ -154,7 +155,7 @@ namespace KFileBackup.Tests
 				fileItem2.FileLocations.Add(new FileLocation(@"C:\file1", true));
 				fileItem2.FileLocations.Add(new FileLocation(@"C:\file2", false));
 				Assert.AreEqual(AddOrMergeResult.Added, fileItemCatalog1.AddOrMerge(fileItem1));
-				Assert.AreEqual(AddOrMergeResult.None, fileItemCatalog1.AddOrMerge(fileItem2));
+				Assert.AreEqual(AddOrMergeResult.Same, fileItemCatalog1.AddOrMerge(fileItem2));
 				Assert.AreEqual(1, fileItemCatalog1.Count);
 				Assert.AreEqual(2, fileItemCatalog1.Single().FileLocations.Count);
 			}
@@ -235,7 +236,21 @@ namespace KFileBackup.Tests
 			}
 			finally
 			{
-				System.IO.File.Delete("test_catalog.catbk");
+				File.Delete("test_catalog.catbk");
+			}
+		}
+
+		public static void CatalogFilesInDirectory_AllNew()
+		{
+			try
+			{
+				Directory.CreateDirectory(@"fict_ctid");
+				Directory.CreateDirectory(@"fict_ctid\folder1");
+				File.WriteAllText(@"fict_ctid\file1", "sometext");
+			}
+			finally
+			{
+				Directory.Delete(@"fict_ctid", true);
 			}
 		}
 
