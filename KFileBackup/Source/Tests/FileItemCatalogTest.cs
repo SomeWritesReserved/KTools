@@ -199,11 +199,11 @@ namespace KFileBackup.Tests
 					Assert.AreEqual(AddOrMergeResult.Added, fileItemCatalog1.AddOrMerge(new FileItem(new Hash(999), new FileLocation(@"C:\blah", false))));
 					Assert.AreEqual(AddOrMergeResult.Added, fileItemCatalog1.AddOrMerge(new FileItem(new Hash(456), new FileLocation(@"C:\filezzz", false))));
 					Assert.AreEqual(AddOrMergeResult.Merged, fileItemCatalog1.AddOrMerge(new FileItem(new Hash(456), new FileLocation(@"C:\filezzz2", true))));
-					fileItemCatalog1.SaveCatalogToFile("test_catalog.catbk");
+					fileItemCatalog1.SaveCatalogToFile("unittestcatalog.bkc");
 				}
 				{
 					FileItemCatalog fileItemCatalog2 = new FileItemCatalog();
-					fileItemCatalog2.ReadCatalogFromFile("test_catalog.catbk");
+					fileItemCatalog2.ReadCatalogFromFile("unittestcatalog.bkc");
 					Assert.AreEqual(3, fileItemCatalog2.Count);
 					Assert.AreEqual(new FileItem(new Hash(134)), fileItemCatalog2.First());
 					Assert.AreEqual(new FileItem(new Hash(999)), fileItemCatalog2.Skip(1).First());
@@ -236,17 +236,189 @@ namespace KFileBackup.Tests
 			}
 			finally
 			{
-				File.Delete("test_catalog.catbk");
+				File.Delete("unittestcatalog.bkc");
 			}
 		}
 
-		public static void CatalogFilesInDirectory_AllNew()
+		public static void CatalogFilesInDirectory_AllAdded_ThenAllSame()
 		{
 			try
 			{
+				Assert.IsFalse(Directory.Exists(@"fict_ctid"));
 				Directory.CreateDirectory(@"fict_ctid");
 				Directory.CreateDirectory(@"fict_ctid\folder1");
-				File.WriteAllText(@"fict_ctid\file1", "sometext");
+				File.WriteAllText(@"fict_ctid\file1", "sometext1");
+				File.WriteAllText(@"fict_ctid\file2", "sometext2");
+				File.WriteAllText(@"fict_ctid\folder1\file3", "sometext3");
+
+				FileItemCatalog fileItemCatalog1 = new FileItemCatalog();
+				{
+					var catalogFileResults1 = fileItemCatalog1.CatalogFilesInDirectory(@"fict_ctid", "*", false, (str) => { });
+					Assert.AreEqual(3, catalogFileResults1.Count);
+					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1[@"fict_ctid\file1"]);
+					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1[@"fict_ctid\file2"]);
+					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1[@"fict_ctid\folder1\file3"]);
+					Assert.AreEqual(3, fileItemCatalog1.Count);
+					{
+						Assert.AreEqual(1, fileItemCatalog1.First().FileLocations.Count);
+						Assert.AreEqual(@"fict_ctid\file1", fileItemCatalog1.First().FileLocations.First().FullPath);
+					}
+					{
+						Assert.AreEqual(1, fileItemCatalog1.Skip(1).First().FileLocations.Count);
+						Assert.AreEqual(@"fict_ctid\file2", fileItemCatalog1.Skip(1).First().FileLocations.First().FullPath);
+					}
+					{
+						Assert.AreEqual(1, fileItemCatalog1.Skip(2).First().FileLocations.Count);
+						Assert.AreEqual(@"fict_ctid\folder1\file3", fileItemCatalog1.Skip(2).First().FileLocations.First().FullPath);
+					}
+				}
+				{
+					var catalogFileResults1 = fileItemCatalog1.CatalogFilesInDirectory(@"fict_ctid", "*", false, (str) => { });
+					Assert.AreEqual(3, catalogFileResults1.Count);
+					Assert.AreEqual(CatalogFileResult.Same, catalogFileResults1[@"fict_ctid\file1"]);
+					Assert.AreEqual(CatalogFileResult.Same, catalogFileResults1[@"fict_ctid\file2"]);
+					Assert.AreEqual(CatalogFileResult.Same, catalogFileResults1[@"fict_ctid\folder1\file3"]);
+					Assert.AreEqual(3, fileItemCatalog1.Count);
+					{
+						Assert.AreEqual(1, fileItemCatalog1.First().FileLocations.Count);
+						Assert.AreEqual(@"fict_ctid\file1", fileItemCatalog1.First().FileLocations.First().FullPath);
+					}
+					{
+						Assert.AreEqual(1, fileItemCatalog1.Skip(1).First().FileLocations.Count);
+						Assert.AreEqual(@"fict_ctid\file2", fileItemCatalog1.Skip(1).First().FileLocations.First().FullPath);
+					}
+					{
+						Assert.AreEqual(1, fileItemCatalog1.Skip(2).First().FileLocations.Count);
+						Assert.AreEqual(@"fict_ctid\folder1\file3", fileItemCatalog1.Skip(2).First().FileLocations.First().FullPath);
+					}
+				}
+			}
+			finally
+			{
+				Directory.Delete(@"fict_ctid", true);
+			}
+		}
+
+		public static void CatalogFilesInDirectory_AllAdded_ThenMoreAdded()
+		{
+			try
+			{
+				Assert.IsFalse(Directory.Exists(@"fict_ctid"));
+				Directory.CreateDirectory(@"fict_ctid");
+				Directory.CreateDirectory(@"fict_ctid\folder1");
+				File.WriteAllText(@"fict_ctid\file1", "sometext1");
+				File.WriteAllText(@"fict_ctid\file2", "sometext2");
+				File.WriteAllText(@"fict_ctid\folder1\file3", "sometext3");
+
+				FileItemCatalog fileItemCatalog1 = new FileItemCatalog();
+				{
+					var catalogFileResults1 = fileItemCatalog1.CatalogFilesInDirectory(@"fict_ctid", "*", false, (str) => { });
+					Assert.AreEqual(3, catalogFileResults1.Count);
+					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1[@"fict_ctid\file1"]);
+					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1[@"fict_ctid\file2"]);
+					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1[@"fict_ctid\folder1\file3"]);
+					Assert.AreEqual(3, fileItemCatalog1.Count);
+					{
+						Assert.AreEqual(1, fileItemCatalog1.First().FileLocations.Count);
+						Assert.AreEqual(@"fict_ctid\file1", fileItemCatalog1.First().FileLocations.First().FullPath);
+					}
+					{
+						Assert.AreEqual(1, fileItemCatalog1.Skip(1).First().FileLocations.Count);
+						Assert.AreEqual(@"fict_ctid\file2", fileItemCatalog1.Skip(1).First().FileLocations.First().FullPath);
+					}
+					{
+						Assert.AreEqual(1, fileItemCatalog1.Skip(2).First().FileLocations.Count);
+						Assert.AreEqual(@"fict_ctid\folder1\file3", fileItemCatalog1.Skip(2).First().FileLocations.First().FullPath);
+					}
+				}
+				File.WriteAllText(@"fict_ctid\file4", "sometext4");
+				{
+					var catalogFileResults1 = fileItemCatalog1.CatalogFilesInDirectory(@"fict_ctid", "*", false, (str) => { });
+					Assert.AreEqual(4, catalogFileResults1.Count);
+					Assert.AreEqual(CatalogFileResult.Same, catalogFileResults1[@"fict_ctid\file1"]);
+					Assert.AreEqual(CatalogFileResult.Same, catalogFileResults1[@"fict_ctid\file2"]);
+					Assert.AreEqual(CatalogFileResult.Same, catalogFileResults1[@"fict_ctid\folder1\file3"]);
+					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1[@"fict_ctid\file4"]);
+					Assert.AreEqual(4, fileItemCatalog1.Count);
+					{
+						Assert.AreEqual(1, fileItemCatalog1.First().FileLocations.Count);
+						Assert.AreEqual(@"fict_ctid\file1", fileItemCatalog1.First().FileLocations.First().FullPath);
+					}
+					{
+						Assert.AreEqual(1, fileItemCatalog1.Skip(1).First().FileLocations.Count);
+						Assert.AreEqual(@"fict_ctid\file2", fileItemCatalog1.Skip(1).First().FileLocations.First().FullPath);
+					}
+					{
+						Assert.AreEqual(1, fileItemCatalog1.Skip(2).First().FileLocations.Count);
+						Assert.AreEqual(@"fict_ctid\folder1\file3", fileItemCatalog1.Skip(2).First().FileLocations.First().FullPath);
+					}
+					{
+						Assert.AreEqual(1, fileItemCatalog1.Skip(3).First().FileLocations.Count);
+						Assert.AreEqual(@"fict_ctid\file4", fileItemCatalog1.Skip(3).First().FileLocations.First().FullPath);
+					}
+				}
+			}
+			finally
+			{
+				Directory.Delete(@"fict_ctid", true);
+			}
+		}
+
+		public static void CatalogFilesInDirectory_AllAdded_ThenMerged()
+		{
+			try
+			{
+				Assert.IsFalse(Directory.Exists(@"fict_ctid"));
+				Directory.CreateDirectory(@"fict_ctid");
+				Directory.CreateDirectory(@"fict_ctid\folder1");
+				File.WriteAllText(@"fict_ctid\file1", "sometext1");
+				File.WriteAllText(@"fict_ctid\file2", "sometext2");
+				File.WriteAllText(@"fict_ctid\folder1\file3", "sometext3");
+
+				FileItemCatalog fileItemCatalog1 = new FileItemCatalog();
+				{
+					var catalogFileResults1 = fileItemCatalog1.CatalogFilesInDirectory(@"fict_ctid", "*", false, (str) => { });
+					Assert.AreEqual(3, catalogFileResults1.Count);
+					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1[@"fict_ctid\file1"]);
+					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1[@"fict_ctid\file2"]);
+					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1[@"fict_ctid\folder1\file3"]);
+					Assert.AreEqual(3, fileItemCatalog1.Count);
+					{
+						Assert.AreEqual(1, fileItemCatalog1.First().FileLocations.Count);
+						Assert.AreEqual(@"fict_ctid\file1", fileItemCatalog1.First().FileLocations.First().FullPath);
+					}
+					{
+						Assert.AreEqual(1, fileItemCatalog1.Skip(1).First().FileLocations.Count);
+						Assert.AreEqual(@"fict_ctid\file2", fileItemCatalog1.Skip(1).First().FileLocations.First().FullPath);
+					}
+					{
+						Assert.AreEqual(1, fileItemCatalog1.Skip(2).First().FileLocations.Count);
+						Assert.AreEqual(@"fict_ctid\folder1\file3", fileItemCatalog1.Skip(2).First().FileLocations.First().FullPath);
+					}
+				}
+				File.WriteAllText(@"fict_ctid\folder1\file4", "sometext2");
+				{
+					var catalogFileResults1 = fileItemCatalog1.CatalogFilesInDirectory(@"fict_ctid", "*", false, (str) => { });
+					Assert.AreEqual(4, catalogFileResults1.Count);
+					Assert.AreEqual(CatalogFileResult.Same, catalogFileResults1[@"fict_ctid\file1"]);
+					Assert.AreEqual(CatalogFileResult.Same, catalogFileResults1[@"fict_ctid\file2"]);
+					Assert.AreEqual(CatalogFileResult.Same, catalogFileResults1[@"fict_ctid\folder1\file3"]);
+					Assert.AreEqual(CatalogFileResult.Merged, catalogFileResults1[@"fict_ctid\folder1\file4"]);
+					Assert.AreEqual(3, fileItemCatalog1.Count);
+					{
+						Assert.AreEqual(1, fileItemCatalog1.First().FileLocations.Count);
+						Assert.AreEqual(@"fict_ctid\file1", fileItemCatalog1.First().FileLocations.First().FullPath);
+					}
+					{
+						Assert.AreEqual(2, fileItemCatalog1.Skip(1).First().FileLocations.Count);
+						Assert.AreEqual(@"fict_ctid\file2", fileItemCatalog1.Skip(1).First().FileLocations.First().FullPath);
+						Assert.AreEqual(@"fict_ctid\folder1\file4", fileItemCatalog1.Skip(1).First().FileLocations.Skip(1).First().FullPath);
+					}
+					{
+						Assert.AreEqual(1, fileItemCatalog1.Skip(2).First().FileLocations.Count);
+						Assert.AreEqual(@"fict_ctid\folder1\file3", fileItemCatalog1.Skip(2).First().FileLocations.First().FullPath);
+					}
+				}
 			}
 			finally
 			{

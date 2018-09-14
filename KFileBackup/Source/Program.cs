@@ -78,7 +78,7 @@ namespace KFileBackup
 					}
 					catch (ApplicationException applicationException)
 					{
-						Program.log("  {0} FAILED: {1}", testMethod.Name, applicationException.Message);
+						Program.log("  {0} FAILED: {1}", testMethod.Name, applicationException.InnerException.Message);
 					}
 					catch (Exception exception)
 					{
