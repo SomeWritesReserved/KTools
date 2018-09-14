@@ -74,7 +74,7 @@ namespace KFileBackup.Tests
 			{
 				FileItemCatalog fileItemCatalog1 = new FileItemCatalog();
 				Assert.AreEqual(0, fileItemCatalog1.Count);
-				fileItemCatalog1.AddOrMerge(new FileItem(new Hash(134)));
+				Assert.AreEqual(AddOrMergeResult.Added, fileItemCatalog1.AddOrMerge(new FileItem(new Hash(134))));
 				Assert.AreEqual(1, fileItemCatalog1.Count);
 				Assert.AreEqual(new FileItem(new Hash(134)), fileItemCatalog1.Single());
 				Assert.IsTrue(fileItemCatalog1.TryGetValue(new Hash(134), out FileItem fileItem1));
@@ -84,7 +84,7 @@ namespace KFileBackup.Tests
 			{
 				FileItemCatalog fileItemCatalog1 = new FileItemCatalog();
 				Assert.AreEqual(0, fileItemCatalog1.Count);
-				fileItemCatalog1.AddOrMerge(new FileItem(new Hash(134), new FileLocation(@"C:\file1", true)));
+				Assert.AreEqual(AddOrMergeResult.Added, fileItemCatalog1.AddOrMerge(new FileItem(new Hash(134), new FileLocation(@"C:\file1", true))));
 				Assert.AreEqual(1, fileItemCatalog1.Count);
 				Assert.AreEqual(new FileItem(new Hash(134)), fileItemCatalog1.Single());
 				Assert.AreEqual(@"C:\file1", fileItemCatalog1.Single().FileLocations.Single().FullPath);
@@ -95,9 +95,9 @@ namespace KFileBackup.Tests
 			}
 			{
 				FileItemCatalog fileItemCatalog1 = new FileItemCatalog();
-				fileItemCatalog1.AddOrMerge(new FileItem(new Hash(134), new FileLocation(@"C:\file1", true)));
-				fileItemCatalog1.AddOrMerge(new FileItem(new Hash(456), new FileLocation(@"C:\filezzz", false)));
-				fileItemCatalog1.AddOrMerge(new FileItem(new Hash(134), new FileLocation(@"C:\file2", false)));
+				Assert.AreEqual(AddOrMergeResult.Added, fileItemCatalog1.AddOrMerge(new FileItem(new Hash(134), new FileLocation(@"C:\file1", true))));
+				Assert.AreEqual(AddOrMergeResult.Added, fileItemCatalog1.AddOrMerge(new FileItem(new Hash(456), new FileLocation(@"C:\filezzz", false))));
+				Assert.AreEqual(AddOrMergeResult.Merged, fileItemCatalog1.AddOrMerge(new FileItem(new Hash(134), new FileLocation(@"C:\file2", false))));
 				Assert.AreEqual(2, fileItemCatalog1.Count);
 				Assert.AreEqual(new FileItem(new Hash(134)), fileItemCatalog1.First());
 				Assert.AreEqual(new FileItem(new Hash(456)), fileItemCatalog1.Skip(1).First());
@@ -118,8 +118,8 @@ namespace KFileBackup.Tests
 			}
 			{
 				FileItemCatalog fileItemCatalog1 = new FileItemCatalog();
-				fileItemCatalog1.AddOrMerge(new FileItem(new Hash(134), new FileLocation(@"C:\file1", true)));
-				fileItemCatalog1.AddOrMerge(new FileItem(new Hash(134), new FileLocation(@"C:\file1", false)));
+				Assert.AreEqual(AddOrMergeResult.Added, fileItemCatalog1.AddOrMerge(new FileItem(new Hash(134), new FileLocation(@"C:\file1", true))));
+				Assert.AreEqual(AddOrMergeResult.None, fileItemCatalog1.AddOrMerge(new FileItem(new Hash(134), new FileLocation(@"C:\file1", true))));
 				Assert.AreEqual(1, fileItemCatalog1.Count);
 				Assert.AreEqual(new FileItem(new Hash(134)), fileItemCatalog1.First());
 				{
@@ -131,18 +131,73 @@ namespace KFileBackup.Tests
 			}
 		}
 
+		public static void AddOrMergeWithMultipleLocations()
+		{
+			{
+				FileItemCatalog fileItemCatalog1 = new FileItemCatalog();
+				FileItem fileItem1 = new FileItem(new Hash(123));
+				fileItem1.FileLocations.Add(new FileLocation(@"C:\file1", true));
+				fileItem1.FileLocations.Add(new FileLocation(@"C:\file2", false));
+				FileItem fileItem2 = new FileItem(new Hash(123));
+				fileItem2.FileLocations.Add(new FileLocation(@"C:\file2", false));
+				Assert.AreEqual(AddOrMergeResult.Added, fileItemCatalog1.AddOrMerge(fileItem1));
+				Assert.AreEqual(AddOrMergeResult.None, fileItemCatalog1.AddOrMerge(fileItem2));
+				Assert.AreEqual(1, fileItemCatalog1.Count);
+				Assert.AreEqual(2, fileItemCatalog1.Single().FileLocations.Count);
+			}
+			{
+				FileItemCatalog fileItemCatalog1 = new FileItemCatalog();
+				FileItem fileItem1 = new FileItem(new Hash(123));
+				fileItem1.FileLocations.Add(new FileLocation(@"C:\file1", true));
+				fileItem1.FileLocations.Add(new FileLocation(@"C:\file2", false));
+				FileItem fileItem2 = new FileItem(new Hash(123));
+				fileItem2.FileLocations.Add(new FileLocation(@"C:\file1", true));
+				fileItem2.FileLocations.Add(new FileLocation(@"C:\file2", false));
+				Assert.AreEqual(AddOrMergeResult.Added, fileItemCatalog1.AddOrMerge(fileItem1));
+				Assert.AreEqual(AddOrMergeResult.None, fileItemCatalog1.AddOrMerge(fileItem2));
+				Assert.AreEqual(1, fileItemCatalog1.Count);
+				Assert.AreEqual(2, fileItemCatalog1.Single().FileLocations.Count);
+			}
+			{
+				FileItemCatalog fileItemCatalog1 = new FileItemCatalog();
+				FileItem fileItem1 = new FileItem(new Hash(123));
+				fileItem1.FileLocations.Add(new FileLocation(@"C:\file1", true));
+				fileItem1.FileLocations.Add(new FileLocation(@"C:\file2", false));
+				FileItem fileItem2 = new FileItem(new Hash(123));
+				fileItem2.FileLocations.Add(new FileLocation(@"C:\file1", true));
+				fileItem2.FileLocations.Add(new FileLocation(@"C:\file3", false));
+				Assert.AreEqual(AddOrMergeResult.Added, fileItemCatalog1.AddOrMerge(fileItem1));
+				Assert.AreEqual(AddOrMergeResult.Merged, fileItemCatalog1.AddOrMerge(fileItem2));
+				Assert.AreEqual(1, fileItemCatalog1.Count);
+				Assert.AreEqual(3, fileItemCatalog1.Single().FileLocations.Count);
+			}
+			{
+				FileItemCatalog fileItemCatalog1 = new FileItemCatalog();
+				FileItem fileItem1 = new FileItem(new Hash(123));
+				fileItem1.FileLocations.Add(new FileLocation(@"C:\file1", true));
+				fileItem1.FileLocations.Add(new FileLocation(@"C:\file2", false));
+				FileItem fileItem2 = new FileItem(new Hash(123));
+				fileItem2.FileLocations.Add(new FileLocation(@"C:\file3", true));
+				fileItem2.FileLocations.Add(new FileLocation(@"C:\file4", false));
+				Assert.AreEqual(AddOrMergeResult.Added, fileItemCatalog1.AddOrMerge(fileItem1));
+				Assert.AreEqual(AddOrMergeResult.Merged, fileItemCatalog1.AddOrMerge(fileItem2));
+				Assert.AreEqual(1, fileItemCatalog1.Count);
+				Assert.AreEqual(4, fileItemCatalog1.Single().FileLocations.Count);
+			}
+		}
+
 		public static void SaveAndLoad()
 		{
 			try
 			{
 				{
 					FileItemCatalog fileItemCatalog1 = new FileItemCatalog();
-					fileItemCatalog1.AddOrMerge(new FileItem(new Hash(134), new FileLocation(@"C:\file1", true)));
-					fileItemCatalog1.AddOrMerge(new FileItem(new Hash(134), new FileLocation(@"C:\file2", false)));
-					fileItemCatalog1.AddOrMerge(new FileItem(new Hash(134), new FileLocation(@"C:\file3", false)));
-					fileItemCatalog1.AddOrMerge(new FileItem(new Hash(999), new FileLocation(@"C:\blah", false)));
-					fileItemCatalog1.AddOrMerge(new FileItem(new Hash(456), new FileLocation(@"C:\filezzz", false)));
-					fileItemCatalog1.AddOrMerge(new FileItem(new Hash(456), new FileLocation(@"C:\filezzz2", true)));
+					Assert.AreEqual(AddOrMergeResult.Added, fileItemCatalog1.AddOrMerge(new FileItem(new Hash(134), new FileLocation(@"C:\file1", true))));
+					Assert.AreEqual(AddOrMergeResult.Merged, fileItemCatalog1.AddOrMerge(new FileItem(new Hash(134), new FileLocation(@"C:\file2", false))));
+					Assert.AreEqual(AddOrMergeResult.Merged, fileItemCatalog1.AddOrMerge(new FileItem(new Hash(134), new FileLocation(@"C:\file3", false))));
+					Assert.AreEqual(AddOrMergeResult.Added, fileItemCatalog1.AddOrMerge(new FileItem(new Hash(999), new FileLocation(@"C:\blah", false))));
+					Assert.AreEqual(AddOrMergeResult.Added, fileItemCatalog1.AddOrMerge(new FileItem(new Hash(456), new FileLocation(@"C:\filezzz", false))));
+					Assert.AreEqual(AddOrMergeResult.Merged, fileItemCatalog1.AddOrMerge(new FileItem(new Hash(456), new FileLocation(@"C:\filezzz2", true))));
 					fileItemCatalog1.SaveCatalogToFile("test_catalog.catbk");
 				}
 				{

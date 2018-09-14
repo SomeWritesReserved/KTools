@@ -21,6 +21,18 @@ namespace KFileBackup.Tests
 			if (actual.Equals(expected)) { throw new ApplicationException("actual incorrectly equals expected"); }
 		}
 
+		public static void AreEqual(object expected, object actual)
+		{
+			if (!expected.Equals(actual)) { throw new ApplicationException("expected object should equal actual but doesn't"); }
+			if (!actual.Equals(expected)) { throw new ApplicationException("actual object should equal expected but doesn't"); }
+		}
+
+		public static void AreNotEqual(object expected, object actual)
+		{
+			if (expected.Equals(actual)) { throw new ApplicationException("expected object incorrectly equals actual"); }
+			if (actual.Equals(expected)) { throw new ApplicationException("actual object incorrectly equals expected"); }
+		}
+
 		public static void SequenceEquals<T>(IEnumerable<T> expected, IEnumerable<T> actual)
 		{
 			if (!expected.SequenceEqual(actual)) { throw new ApplicationException("expected sequence should equal actual but doesn't"); }

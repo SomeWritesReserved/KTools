@@ -39,15 +39,21 @@ namespace KFileBackup
 		/// Adds or merges the given <see cref="FileItem"/> into this catalog, adding if it doesn't exist or combining
 		/// the paths of the given <see cref="FileItem"/> with the <see cref="FileItem"/> already in the catalog.
 		/// </summary>
-		public void AddOrMerge(FileItem fileItem)
+		public AddOrMergeResult AddOrMerge(FileItem fileItem)
 		{
 			if (this.TryGetValue(fileItem.Hash, out FileItem existingFileItem))
 			{
-				existingFileItem.FileLocations.UnionWith(fileItem.FileLocations);
+				AddOrMergeResult addOrMergeResult = AddOrMergeResult.None;
+				foreach (FileLocation fileLocation in fileItem.FileLocations)
+				{
+					if (existingFileItem.FileLocations.Add(fileLocation)) { addOrMergeResult = AddOrMergeResult.Merged; }
+				}
+				return addOrMergeResult;
 			}
 			else
 			{
 				this.Add(fileItem);
+				return AddOrMergeResult.Added;
 			}
 		}
 
@@ -119,5 +125,19 @@ namespace KFileBackup
 		#endregion Helpers
 
 		#endregion Methods
+	}
+
+	/// <summary>
+	/// A value representing the result of <see cref="FileItemCatalog.AddOrMerge(FileItem)"/>, whether a
+	/// <see cref="FileItem"/> was newly added or merged with an existing <see cref="FileItem"/>.
+	/// </summary>
+	public enum AddOrMergeResult
+	{
+		/// <summary>No action was taken, everything was already identical.</summary>
+		None,
+		/// <summary>A new <see cref="FileItem"/> was added to the catalog.</summary>
+		Added,
+		/// <summary>An existing <see cref="FileItem"/> was updated and merged.</summary>
+		Merged,
 	}
 }
