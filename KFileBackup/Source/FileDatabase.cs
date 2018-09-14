@@ -14,7 +14,7 @@ namespace KFileBackup
 		#region Fields
 
 		/// <summary>The collection of all files known to the database, addressed by file contents.</summary>
-		private readonly FileItemCollection fileItems = new FileItemCollection();
+		public readonly FileItemCollection FileItems = new FileItemCollection();
 
 		#endregion Fields
 
@@ -24,8 +24,8 @@ namespace KFileBackup
 		{
 			using (BinaryWriter binaryWriter = new BinaryWriter(new FileStream(databaseFile, FileMode.Create, FileAccess.Write)))
 			{
-				binaryWriter.Write(this.fileItems.Count);
-				foreach (FileItem fileItem in this.fileItems)
+				binaryWriter.Write(this.FileItems.Count);
+				foreach (FileItem fileItem in this.FileItems)
 				{
 					binaryWriter.Write(fileItem.Hash.Value);
 					binaryWriter.Write(fileItem.FileLocations.Count);
@@ -53,6 +53,7 @@ namespace KFileBackup
 						bool isFromReadOnlyLocation = binaryReader.ReadBoolean();
 						fileItem.FileLocations.Add(new FileLocation(fullPath, isFromReadOnlyLocation));
 					}
+					this.FileItems.Add(fileItem);
 				}
 			}
 		}
@@ -62,13 +63,13 @@ namespace KFileBackup
 			foreach (FileItem newFileItem in Directory.EnumerateFiles(path, searchPattern, SearchOption.AllDirectories)
 				.Select((file) => FileItem.CreateFromPath(file, isFromReadOnlyLocation)))
 			{
-				if (this.fileItems.TryGetValue(newFileItem.Hash, out FileItem existingFileItem))
+				if (this.FileItems.TryGetValue(newFileItem.Hash, out FileItem existingFileItem))
 				{
 					existingFileItem.FileLocations.Add(newFileItem.FileLocations.Single());
 				}
 				else
 				{
-					this.fileItems.Add(newFileItem);
+					this.FileItems.Add(newFileItem);
 				}
 			}
 		}
