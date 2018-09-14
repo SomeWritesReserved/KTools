@@ -63,7 +63,6 @@ namespace KFileBackup
 		/// </summary>
 		public static FileItem CreateFromPath(string path, bool isFromReadOnlyLocation)
 		{
-			path = Path.GetFullPath(path);
 			return new FileItem(Hash.GetFileHash(path), new FileLocation(path, isFromReadOnlyLocation));
 		}
 

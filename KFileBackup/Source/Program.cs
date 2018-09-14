@@ -15,7 +15,7 @@ namespace KFileBackup
 		{
 			try
 			{
-				Program.log("Starting new process");
+				Program.log("Starting...");
 				Program.runTests();
 			}
 			catch (Exception exception)
@@ -74,7 +74,7 @@ namespace KFileBackup
 		private static void runTests()
 		{
 			foreach (Type testSuiteType in Assembly.GetExecutingAssembly().GetTypes()
-				.Where((type) => type.Namespace == "KFileBackup.Tests" && type.Name != "Assert"))
+				.Where((type) => type.Namespace == "KFileBackup.Tests" && type.Name.EndsWith("Test")))
 			{
 				Program.log("Testing {0}", testSuiteType.Name);
 				foreach (MethodInfo testMethod in testSuiteType.GetMethods(BindingFlags.Static | BindingFlags.Public))
