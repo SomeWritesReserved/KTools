@@ -109,7 +109,7 @@ namespace KFileBackup
 				int fileItemCount = binaryReader.ReadInt32();
 				foreach (int fileItemIndex in Enumerable.Range(0, fileItemCount))
 				{
-					FileItem fileItem = new FileItem(new Hash(binaryReader.ReadInt32()));
+					FileItem fileItem = new FileItem(new Hash(binaryReader.ReadInt64()));
 					int fileLocationCount = binaryReader.ReadInt32();
 					foreach (int fileLocationIndex in Enumerable.Range(0, fileLocationCount))
 					{
@@ -143,7 +143,7 @@ namespace KFileBackup
 					fileItem = FileItem.CreateFromPath(file, isFromReadOnlyLocation);
 					AddOrMergeResult addOrMergeResult = this.AddOrMerge(fileItem);
 					catalogFileResult = (CatalogFileResult)addOrMergeResult;
-					log.Invoke($"{addOrMergeResult}. {file}");
+					log.Invoke($"{addOrMergeResult}\t{fileItem.Hash.Value:x16}\t{file}");
 				}
 				catch (IOException ioException)
 				{

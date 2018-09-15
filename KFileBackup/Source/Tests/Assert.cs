@@ -21,16 +21,28 @@ namespace KFileBackup.Tests
 			if (actual.Equals(expected)) { throw new ApplicationException("actual incorrectly equals expected"); }
 		}
 
-		public static void AreEqual(object expected, object actual)
+		public static void AreEqual(AddOrMergeResult expected, AddOrMergeResult actual)
 		{
-			if (!expected.Equals(actual)) { throw new ApplicationException("expected object should equal actual but doesn't"); }
-			if (!actual.Equals(expected)) { throw new ApplicationException("actual object should equal expected but doesn't"); }
+			if (!expected.Equals(actual)) { throw new ApplicationException("expected result should equal actual but doesn't"); }
+			if (!actual.Equals(expected)) { throw new ApplicationException("actual result should equal expected but doesn't"); }
 		}
 
-		public static void AreNotEqual(object expected, object actual)
+		public static void AreNotEqual(AddOrMergeResult expected, AddOrMergeResult actual)
 		{
-			if (expected.Equals(actual)) { throw new ApplicationException("expected object incorrectly equals actual"); }
-			if (actual.Equals(expected)) { throw new ApplicationException("actual object incorrectly equals expected"); }
+			if (expected.Equals(actual)) { throw new ApplicationException("expected result incorrectly equals actual"); }
+			if (actual.Equals(expected)) { throw new ApplicationException("actual result incorrectly equals expected"); }
+		}
+
+		public static void AreEqual(CatalogFileResult expected, CatalogFileResult actual)
+		{
+			if (!expected.Equals(actual)) { throw new ApplicationException("expected result should equal actual but doesn't"); }
+			if (!actual.Equals(expected)) { throw new ApplicationException("actual result should equal expected but doesn't"); }
+		}
+
+		public static void AreNotEqual(CatalogFileResult expected, CatalogFileResult actual)
+		{
+			if (expected.Equals(actual)) { throw new ApplicationException("expected result incorrectly equals actual"); }
+			if (actual.Equals(expected)) { throw new ApplicationException("actual result incorrectly equals expected"); }
 		}
 
 		public static void SequenceEquals<T>(IEnumerable<T> expected, IEnumerable<T> actual)

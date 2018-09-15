@@ -15,7 +15,7 @@ namespace KFileBackup
 		#region Constructors
 
 		/// <summary>Constructor.</summary>
-		public Hash(int value)
+		public Hash(long value)
 		{
 			this.Value = value;
 		}
@@ -25,7 +25,7 @@ namespace KFileBackup
 		#region Properties
 
 		/// <summary>Gets the value of the hash.</summary>
-		public int Value { get; }
+		public long Value { get; }
 
 		#endregion Properties
 
@@ -33,7 +33,7 @@ namespace KFileBackup
 
 		public override int GetHashCode()
 		{
-			return this.Value;
+			return this.Value.GetHashCode();
 		}
 
 		public override bool Equals(object obj)
@@ -58,7 +58,7 @@ namespace KFileBackup
 			{
 				SHA1Managed sha = new SHA1Managed();
 				byte[] hash = sha.ComputeHash(stream);
-				return new Hash(BitConverter.ToInt32(hash, 0));
+				return new Hash(BitConverter.ToInt64(hash, 0));
 			}
 		}
 
