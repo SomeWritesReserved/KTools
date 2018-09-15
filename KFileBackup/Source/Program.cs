@@ -40,7 +40,9 @@ namespace KFileBackup
 						fileItemCatalog.ReadCatalogFromFile(Program.catalogFileName);
 					}
 
-					Program.log("Cataloging {0}...", directory);
+					DriveInfo drive = DriveInfo.GetDrives().Single((driveInfo) => driveInfo.Name.Equals(Path.GetPathRoot(directory), StringComparison.OrdinalIgnoreCase));
+					Program.log($"Cataloging {directory} (on '{drive.VolumeLabel}')...");
+					if (isFromReadOnlyLocation) { Program.log("Treating as readonly volume"); }
 					fileItemCatalog.CatalogFilesInDirectory(directory, "*", isFromReadOnlyLocation, Program.log);
 					fileItemCatalog.SaveCatalogToFile(Program.catalogFileName);
 				}
