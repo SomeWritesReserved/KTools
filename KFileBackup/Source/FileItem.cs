@@ -47,7 +47,7 @@ namespace KFileBackup
 
 		public override bool Equals(object obj)
 		{
-			return base.Equals(obj as FileItem);
+			return this.Equals(obj as FileItem);
 		}
 
 		public bool Equals(FileItem other)
