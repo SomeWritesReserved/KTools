@@ -15,6 +15,9 @@ namespace KFileBackup
 	{
 		#region Fields
 
+		private static readonly int fileFormatType = BitConverter.ToInt32(Encoding.ASCII.GetBytes("KBKC"), 0);
+		private static readonly int fileFormatVersion = 1;
+
 		private readonly Dictionary<Hash, FileItem> fileItems = new Dictionary<Hash, FileItem>();
 
 		#endregion Fields
@@ -85,6 +88,9 @@ namespace KFileBackup
 		{
 			using (BinaryWriter binaryWriter = new BinaryWriter(new FileStream(catalogFile, FileMode.Create, FileAccess.Write)))
 			{
+				binaryWriter.Write(FileItemCatalog.fileFormatType);
+				binaryWriter.Write(FileItemCatalog.fileFormatVersion);
+
 				binaryWriter.Write(this.Count);
 				foreach (FileItem fileItem in this)
 				{
@@ -106,6 +112,11 @@ namespace KFileBackup
 		{
 			using (BinaryReader binaryReader = new BinaryReader(new FileStream(catalogFile, FileMode.Open, FileAccess.Read)))
 			{
+				int fileFormatType = binaryReader.ReadInt32();
+				if (fileFormatType != FileItemCatalog.fileFormatType) { throw new InvalidDataException("File is not a catalog file."); }
+				int fileFormatVersion = binaryReader.ReadInt32();
+				if (fileFormatVersion != FileItemCatalog.fileFormatVersion) { throw new InvalidDataException($"File format {fileFormatVersion} of the catalog file is not recognized."); }
+
 				int fileItemCount = binaryReader.ReadInt32();
 				foreach (int fileItemIndex in Enumerable.Range(0, fileItemCount))
 				{
