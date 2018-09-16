@@ -46,6 +46,21 @@ namespace KFileBackup
 					fileItemCatalog.CatalogFilesInDirectory(directory, "*", isFromReadOnlyLocation, Program.log);
 					fileItemCatalog.SaveCatalogToFile(Program.catalogFileName);
 				}
+				else if (args.FirstOrDefault() == "check")
+				{
+					string directory = args.Last();
+					if (!Path.IsPathRooted(directory)) { throw new ArgumentException("Directory must be a full, rooted path."); }
+					if (!Directory.Exists(directory)) { throw new ArgumentException("Directory does not exist."); }
+
+					if (!File.Exists(Program.catalogFileName)) { throw new ArgumentException("No saved catalog exists, nothing to check against. Run 'catalog' command."); }
+
+					FileItemCatalog fileItemCatalog = new FileItemCatalog();
+					Program.log("Reading catalog from saved file...");
+					fileItemCatalog.ReadCatalogFromFile(Program.catalogFileName);
+
+					Program.log($"Checking {directory}...");
+					fileItemCatalog.CatalogFilesInDirectory(directory, "*", false, Program.log);
+				}
 			}
 			catch (Exception exception)
 			{
