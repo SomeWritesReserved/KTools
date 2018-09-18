@@ -61,6 +61,22 @@ namespace KFileBackup
 					Program.log($"Checking {directory}...");
 					fileItemCatalog.CatalogFilesInDirectory(directory, "*", false, Program.log);
 				}
+				else if (args.FirstOrDefault() == "compare")
+				{
+					string baseDirectory = args.Skip(1).First();
+					string compareDirectory = args.Skip(2).First();
+					if (!Path.IsPathRooted(baseDirectory)) { throw new ArgumentException("Base directory must be a full, rooted path."); }
+					if (!Directory.Exists(baseDirectory)) { throw new ArgumentException("Base directory does not exist."); }
+					if (!Path.IsPathRooted(compareDirectory)) { throw new ArgumentException("Compare directory must be a full, rooted path."); }
+					if (!Directory.Exists(compareDirectory)) { throw new ArgumentException("Compare directory does not exist."); }
+
+					FileItemCatalog fileItemCatalog = new FileItemCatalog();
+					Program.log($"Cataloging base directory {baseDirectory}...");
+					fileItemCatalog.CatalogFilesInDirectory(baseDirectory, "*", false, (str) => { });
+
+					Program.log($"Checking compare directory {compareDirectory}...");
+					fileItemCatalog.CatalogFilesInDirectory(compareDirectory, "*", false, Program.log);
+				}
 			}
 			catch (Exception exception)
 			{
