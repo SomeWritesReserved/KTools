@@ -101,6 +101,25 @@ namespace KFileBackup
 						}
 					}
 				}
+				else if (args.FirstOrDefault() == "ls")
+				{
+					bool showAllFileLocations = args.Contains("--all");
+					if (!File.Exists(Program.catalogFileName)) { throw new ArgumentException("No saved catalog exists, nothing to list. Run 'catalog' command."); }
+
+					FileItemCatalog fileItemCatalog = new FileItemCatalog();
+					Program.log("Reading catalog from saved file...");
+					fileItemCatalog.ReadCatalogFromFile(Program.catalogFileName);
+
+					foreach (FileItem fileItem in fileItemCatalog.OrderBy((fi) => fi.FileLocations.First()))
+					{
+						Program.log($"{fileItem.Hash}:");
+						foreach (FileLocation fileLocation in fileItem.FileLocations.OrderBy((fl) => fl))
+						{
+							Program.log(" {0}{1}", fileLocation.IsFromReadOnlyLocation ? "*" : " ", fileLocation.FullPath);
+							if (!showAllFileLocations) { break; }
+						}
+					}
+				}
 			}
 			catch (Exception exception)
 			{
@@ -154,7 +173,7 @@ namespace KFileBackup
 		private static void log(string message)
 		{
 			Console.WriteLine(message);
-			File.AppendAllText("log.log", string.Format("{0}: {1}{2}", DateTime.Now, message, Environment.NewLine));
+			File.AppendAllText("log.log", string.Format("{0:MM/dd/yyyy hh:mm:ss tt}: {1}{2}", DateTime.Now, message, Environment.NewLine));
 		}
 
 		private static void log(string message, params object[] args)
