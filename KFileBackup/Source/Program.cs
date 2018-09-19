@@ -59,7 +59,7 @@ namespace KFileBackup
 					fileItemCatalog.ReadCatalogFromFile(Program.catalogFileName);
 
 					Program.log($"Checking {directory}...");
-					fileItemCatalog.CatalogFilesInDirectory(directory, "*", false, Program.log);
+					fileItemCatalog.CheckFilesInDirectory(directory, "*", Program.log);
 				}
 				else if (args.FirstOrDefault() == "compare")
 				{
@@ -75,7 +75,7 @@ namespace KFileBackup
 					fileItemCatalog.CatalogFilesInDirectory(baseDirectory, "*", false, (str) => { });
 
 					Program.log($"Checking compare directory {compareDirectory}...");
-					fileItemCatalog.CatalogFilesInDirectory(compareDirectory, "*", false, Program.log);
+					fileItemCatalog.CheckFilesInDirectory(compareDirectory, "*", Program.log);
 				}
 			}
 			catch (Exception exception)
