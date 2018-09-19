@@ -61,6 +61,43 @@ namespace KFileBackup
 		}
 
 		/// <summary>
+		/// Finds all files in a directory and adds them to this catalog. Returns the results for each file found.
+		/// </summary>
+		public Dictionary<string, CatalogFileResult> CatalogFilesInDirectory(string directory, string searchPattern, bool isFromReadOnlyLocation, Action<string> log)
+		{
+			log.Invoke("Finding files...");
+			string[] allFiles = Directory.GetFiles(directory, searchPattern, SearchOption.AllDirectories);
+			log.Invoke($"Found {allFiles.Length} files.");
+
+			log.Invoke("Getting file hashes...");
+			int processedFileCount = 0;
+			Dictionary<string, CatalogFileResult> catalogFileResults = new Dictionary<string, CatalogFileResult>(StringComparer.OrdinalIgnoreCase);
+			foreach (string file in allFiles)
+			{
+				FileItem fileItem;
+				CatalogFileResult catalogFileResult;
+				try
+				{
+					fileItem = FileItem.CreateFromPath(file, isFromReadOnlyLocation);
+					AddOrMergeResult addOrMergeResult = this.AddOrMerge(fileItem);
+					catalogFileResult = (CatalogFileResult)addOrMergeResult;
+					log.Invoke($"{addOrMergeResult}\t{fileItem.Hash.Value:x16}\t{file}");
+				}
+				catch (IOException ioException)
+				{
+					catalogFileResult = CatalogFileResult.Skipped;
+					log.Invoke($"Skipped ({ioException.Message}). {file}");
+				}
+
+				catalogFileResults.Add(file, catalogFileResult);
+				processedFileCount++;
+				if ((processedFileCount % 20) == 0) { log.Invoke($"{processedFileCount / (double)allFiles.Length:0.0%} - {processedFileCount} of {allFiles.Length} files..."); }
+			}
+			log.Invoke($"Cataloged {allFiles.Length} files ({catalogFileResults.Count((kvp) => kvp.Value == CatalogFileResult.Same)} same, {catalogFileResults.Count((kvp) => kvp.Value == CatalogFileResult.Added)} added, {catalogFileResults.Count((kvp) => kvp.Value == CatalogFileResult.Merged)} merged. {catalogFileResults.Count((kvp) => kvp.Value == CatalogFileResult.Skipped)} skipped).");
+			return catalogFileResults;
+		}
+
+		/// <summary>
 		/// Gets the <see cref="FileItem"/> associated with the specified <see cref="Hash"/>, returning whether or not
 		/// the <see cref="FileItem"/> exists.
 		/// </summary>
@@ -131,43 +168,6 @@ namespace KFileBackup
 					this.AddOrMerge(fileItem);
 				}
 			}
-		}
-
-		/// <summary>
-		/// Finds all files in a directory and adds them to this catalog. Returns the results for each file found.
-		/// </summary>
-		public Dictionary<string, CatalogFileResult> CatalogFilesInDirectory(string directory, string searchPattern, bool isFromReadOnlyLocation, Action<string> log)
-		{
-			log.Invoke("Finding files...");
-			string[] allFiles = Directory.GetFiles(directory, searchPattern, SearchOption.AllDirectories);
-			log.Invoke($"Found {allFiles.Length} files.");
-
-			log.Invoke("Getting file hashes...");
-			int processedFileCount = 0;
-			Dictionary<string, CatalogFileResult> catalogFileResults = new Dictionary<string, CatalogFileResult>(StringComparer.OrdinalIgnoreCase);
-			foreach (string file in allFiles)
-			{
-				FileItem fileItem;
-				CatalogFileResult catalogFileResult;
-				try
-				{
-					fileItem = FileItem.CreateFromPath(file, isFromReadOnlyLocation);
-					AddOrMergeResult addOrMergeResult = this.AddOrMerge(fileItem);
-					catalogFileResult = (CatalogFileResult)addOrMergeResult;
-					log.Invoke($"{addOrMergeResult}\t{fileItem.Hash.Value:x16}\t{file}");
-				}
-				catch (IOException ioException)
-				{
-					catalogFileResult = CatalogFileResult.Skipped;
-					log.Invoke($"Skipped ({ioException.Message}). {file}");
-				}
-
-				catalogFileResults.Add(file, catalogFileResult);
-				processedFileCount++;
-				if ((processedFileCount % 20) == 0) { log.Invoke($"{processedFileCount / (double)allFiles.Length:0.0%} - {processedFileCount} of {allFiles.Length} files..."); }
-			}
-			log.Invoke($"Cataloged {allFiles.Length} files ({catalogFileResults.Count((kvp) => kvp.Value == CatalogFileResult.Same)} same, {catalogFileResults.Count((kvp) => kvp.Value == CatalogFileResult.Added)} added, {catalogFileResults.Count((kvp) => kvp.Value == CatalogFileResult.Merged)} merged. {catalogFileResults.Count((kvp) => kvp.Value == CatalogFileResult.Skipped)} skipped).");
-			return catalogFileResults;
 		}
 
 		#endregion Helpers
