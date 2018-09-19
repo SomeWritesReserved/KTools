@@ -77,6 +77,30 @@ namespace KFileBackup
 					Program.log($"Checking compare directory {compareDirectory}...");
 					fileItemCatalog.CheckFilesInDirectory(compareDirectory, "*", Program.log);
 				}
+				else if (args.FirstOrDefault() == "view")
+				{
+					string fileHashHex = args.Last();
+					if (!long.TryParse(fileHashHex, System.Globalization.NumberStyles.HexNumber, null, out long fileHash)) { throw new ArgumentException($"{fileHashHex} is not a hash."); }
+
+					if (!File.Exists(Program.catalogFileName)) { throw new ArgumentException("No saved catalog exists, nothing to view. Run 'catalog' command."); }
+
+					FileItemCatalog fileItemCatalog = new FileItemCatalog();
+					Program.log("Reading catalog from saved file...");
+					fileItemCatalog.ReadCatalogFromFile(Program.catalogFileName);
+
+					Program.log($"Viewing hash '{fileHashHex}'");
+					if (!fileItemCatalog.TryGetValue(new Hash(fileHash), out FileItem fileItem))
+					{
+						Program.log($" No files.");
+					}
+					else
+					{
+						foreach (FileLocation fileLocation in fileItem.FileLocations)
+						{
+							Program.log(" {0}{1}", fileLocation.IsFromReadOnlyLocation ? "*" : " ", fileLocation.FullPath);
+						}
+					}
+				}
 			}
 			catch (Exception exception)
 			{
@@ -88,10 +112,11 @@ namespace KFileBackup
 			}
 			finally
 			{
-				Program.log("Done");
 				Program.log();
 			}
+#if DEBUG
 			Console.ReadKey(true);
+#endif
 		}
 
 		#region Helpers
