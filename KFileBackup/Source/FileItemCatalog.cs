@@ -100,7 +100,7 @@ namespace KFileBackup
 		/// <summary>
 		/// Checks all files in a directory to see if they are already in this catalog. Returns the results for each file found.
 		/// </summary>
-		public Dictionary<string, CheckFileResult> CheckFilesInDirectory(string directory, string searchPattern, Action<string> log)
+		public Dictionary<string, CheckFileResult> CheckFilesInDirectory(string directory, string searchPattern, bool shouldLogAll, Action<string> log)
 		{
 			log.Invoke("Finding files...");
 			string[] allFiles = Directory.GetFiles(directory, searchPattern, SearchOption.AllDirectories);
@@ -117,7 +117,10 @@ namespace KFileBackup
 				{
 					fileItem = FileItem.CreateFromPath(file, false);
 					checkFileResult = this.TryGetValue(fileItem.Hash, out _) ? CheckFileResult.Exists : CheckFileResult.New;
-					log.Invoke($"{checkFileResult}\t{fileItem.Hash}\t{file}");
+					if (checkFileResult == CheckFileResult.New || shouldLogAll)
+					{
+						log.Invoke($"{checkFileResult}\t{fileItem.Hash}\t{file}");
+					}
 				}
 				catch (IOException ioException)
 				{

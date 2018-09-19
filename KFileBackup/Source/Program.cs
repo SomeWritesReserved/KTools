@@ -48,6 +48,7 @@ namespace KFileBackup
 				}
 				else if (args.FirstOrDefault() == "check")
 				{
+					bool showAllFiles = args.Contains("--all");
 					string directory = args.Last();
 					if (!Path.IsPathRooted(directory)) { throw new ArgumentException("Directory must be a full, rooted path."); }
 					if (!Directory.Exists(directory)) { throw new ArgumentException("Directory does not exist."); }
@@ -59,12 +60,13 @@ namespace KFileBackup
 					fileItemCatalog.ReadCatalogFromFile(Program.catalogFileName);
 
 					Program.log($"Checking {directory}...");
-					fileItemCatalog.CheckFilesInDirectory(directory, "*", Program.log);
+					fileItemCatalog.CheckFilesInDirectory(directory, "*", showAllFiles, Program.log);
 				}
 				else if (args.FirstOrDefault() == "compare")
 				{
-					string baseDirectory = args.Skip(1).First();
-					string compareDirectory = args.Skip(2).First();
+					bool showAllFiles = args.Contains("--all");
+					string baseDirectory = args[args.Length - 2];
+					string compareDirectory = args[args.Length - 1];
 					if (!Path.IsPathRooted(baseDirectory)) { throw new ArgumentException("Base directory must be a full, rooted path."); }
 					if (!Directory.Exists(baseDirectory)) { throw new ArgumentException("Base directory does not exist."); }
 					if (!Path.IsPathRooted(compareDirectory)) { throw new ArgumentException("Compare directory must be a full, rooted path."); }
@@ -75,7 +77,7 @@ namespace KFileBackup
 					fileItemCatalog.CatalogFilesInDirectory(baseDirectory, "*", false, (str) => { });
 
 					Program.log($"Checking compare directory {compareDirectory}...");
-					fileItemCatalog.CheckFilesInDirectory(compareDirectory, "*", Program.log);
+					fileItemCatalog.CheckFilesInDirectory(compareDirectory, "*", showAllFiles, Program.log);
 				}
 				else if (args.FirstOrDefault() == "view")
 				{
