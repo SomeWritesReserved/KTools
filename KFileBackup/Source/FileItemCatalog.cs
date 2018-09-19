@@ -81,7 +81,7 @@ namespace KFileBackup
 					fileItem = FileItem.CreateFromPath(file, isFromReadOnlyLocation);
 					AddOrMergeResult addOrMergeResult = this.AddOrMerge(fileItem);
 					catalogFileResult = (CatalogFileResult)addOrMergeResult;
-					log.Invoke($"{addOrMergeResult}\t{fileItem.Hash.Value:x16}\t{file}");
+					log.Invoke($"{addOrMergeResult}\t{fileItem.Hash}\t{file}");
 				}
 				catch (IOException ioException)
 				{
@@ -117,7 +117,7 @@ namespace KFileBackup
 				{
 					fileItem = FileItem.CreateFromPath(file, false);
 					checkFileResult = this.TryGetValue(fileItem.Hash, out _) ? CheckFileResult.Exists : CheckFileResult.New;
-					log.Invoke($"{checkFileResult}\t{fileItem.Hash.Value:x16}\t{file}");
+					log.Invoke($"{checkFileResult}\t{fileItem.Hash}\t{file}");
 				}
 				catch (IOException ioException)
 				{

@@ -9,7 +9,7 @@ namespace KFileBackup
 	/// <summary>
 	/// Represents a single instance of a file (a <see cref="FileItem"/>) at a specific location.
 	/// </summary>
-	public class FileLocation : IEquatable<FileLocation>
+	public class FileLocation : IEquatable<FileLocation>, IComparable<FileLocation>
 	{
 		#region Constructors
 
@@ -55,6 +55,11 @@ namespace KFileBackup
 		{
 			if (other == null) { return false; }
 			return this.FullPath.Equals(other.FullPath, StringComparison.OrdinalIgnoreCase);
+		}
+
+		public int CompareTo(FileLocation other)
+		{
+			return string.Compare(this.FullPath, other.FullPath, StringComparison.OrdinalIgnoreCase);
 		}
 
 		#endregion Methods

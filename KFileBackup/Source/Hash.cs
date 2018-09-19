@@ -31,6 +31,11 @@ namespace KFileBackup
 
 		#region Methods
 
+		public override string ToString()
+		{
+			return $"{this.Value:x16}";
+		}
+
 		public override int GetHashCode()
 		{
 			return this.Value.GetHashCode();
