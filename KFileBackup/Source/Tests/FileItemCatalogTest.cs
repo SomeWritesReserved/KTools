@@ -426,6 +426,242 @@ namespace KFileBackup.Tests
 			}
 		}
 
+		public static void CheckFilesInDirectory_AllSame()
+		{
+			try
+			{
+				Assert.IsFalse(Directory.Exists(@"fict_ctid"));
+				Directory.CreateDirectory(@"fict_ctid");
+				Directory.CreateDirectory(@"fict_ctid\folder1");
+				File.WriteAllText(@"fict_ctid\file1", "sometext1");
+				File.WriteAllText(@"fict_ctid\file2", "sometext2");
+				File.WriteAllText(@"fict_ctid\folder1\file3", "sometext3");
+
+				FileItemCatalog fileItemCatalog1 = new FileItemCatalog();
+				{
+					var catalogFileResults1 = fileItemCatalog1.CatalogFilesInDirectory(@"fict_ctid", "*", false, (str) => { });
+					Assert.AreEqual(3, catalogFileResults1.Count);
+					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1[@"fict_ctid\file1"]);
+					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1[@"fict_ctid\file2"]);
+					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1[@"fict_ctid\folder1\file3"]);
+					Assert.AreEqual(3, fileItemCatalog1.Count);
+					{
+						Assert.AreEqual(1, fileItemCatalog1.First().FileLocations.Count);
+						Assert.AreEqual(@"fict_ctid\file1", fileItemCatalog1.First().FileLocations.First().FullPath);
+					}
+					{
+						Assert.AreEqual(1, fileItemCatalog1.Skip(1).First().FileLocations.Count);
+						Assert.AreEqual(@"fict_ctid\file2", fileItemCatalog1.Skip(1).First().FileLocations.First().FullPath);
+					}
+					{
+						Assert.AreEqual(1, fileItemCatalog1.Skip(2).First().FileLocations.Count);
+						Assert.AreEqual(@"fict_ctid\folder1\file3", fileItemCatalog1.Skip(2).First().FileLocations.First().FullPath);
+					}
+				}
+				{
+					var checkFileResults1 = fileItemCatalog1.CheckFilesInDirectory(@"fict_ctid", "*", false, (str) => { });
+					Assert.AreEqual(3, checkFileResults1.Count);
+					Assert.AreEqual(CheckFileResult.Exists, checkFileResults1[@"fict_ctid\file1"]);
+					Assert.AreEqual(CheckFileResult.Exists, checkFileResults1[@"fict_ctid\file2"]);
+					Assert.AreEqual(CheckFileResult.Exists, checkFileResults1[@"fict_ctid\folder1\file3"]);
+				}
+			}
+			finally
+			{
+				Directory.Delete(@"fict_ctid", true);
+			}
+		}
+
+		public static void CheckFilesInDirectory_NewFileSame()
+		{
+			try
+			{
+				Assert.IsFalse(Directory.Exists(@"fict_ctid"));
+				Directory.CreateDirectory(@"fict_ctid");
+				Directory.CreateDirectory(@"fict_ctid\folder1");
+				File.WriteAllText(@"fict_ctid\file1", "sometext1");
+				File.WriteAllText(@"fict_ctid\file2", "sometext2");
+				File.WriteAllText(@"fict_ctid\folder1\file3", "sometext3");
+
+				FileItemCatalog fileItemCatalog1 = new FileItemCatalog();
+				{
+					var catalogFileResults1 = fileItemCatalog1.CatalogFilesInDirectory(@"fict_ctid", "*", false, (str) => { });
+					Assert.AreEqual(3, catalogFileResults1.Count);
+					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1[@"fict_ctid\file1"]);
+					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1[@"fict_ctid\file2"]);
+					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1[@"fict_ctid\folder1\file3"]);
+					Assert.AreEqual(3, fileItemCatalog1.Count);
+					{
+						Assert.AreEqual(1, fileItemCatalog1.First().FileLocations.Count);
+						Assert.AreEqual(@"fict_ctid\file1", fileItemCatalog1.First().FileLocations.First().FullPath);
+					}
+					{
+						Assert.AreEqual(1, fileItemCatalog1.Skip(1).First().FileLocations.Count);
+						Assert.AreEqual(@"fict_ctid\file2", fileItemCatalog1.Skip(1).First().FileLocations.First().FullPath);
+					}
+					{
+						Assert.AreEqual(1, fileItemCatalog1.Skip(2).First().FileLocations.Count);
+						Assert.AreEqual(@"fict_ctid\folder1\file3", fileItemCatalog1.Skip(2).First().FileLocations.First().FullPath);
+					}
+				}
+				{
+					File.WriteAllText(@"fict_ctid\folder1\file4", "sometext2");
+					var checkFileResults1 = fileItemCatalog1.CheckFilesInDirectory(@"fict_ctid", "*", false, (str) => { });
+					Assert.AreEqual(4, checkFileResults1.Count);
+					Assert.AreEqual(CheckFileResult.Exists, checkFileResults1[@"fict_ctid\file1"]);
+					Assert.AreEqual(CheckFileResult.Exists, checkFileResults1[@"fict_ctid\file2"]);
+					Assert.AreEqual(CheckFileResult.Exists, checkFileResults1[@"fict_ctid\folder1\file3"]);
+					Assert.AreEqual(CheckFileResult.Exists, checkFileResults1[@"fict_ctid\folder1\file4"]);
+				}
+			}
+			finally
+			{
+				Directory.Delete(@"fict_ctid", true);
+			}
+		}
+
+		public static void CheckFilesInDirectory_NewFileDifferent()
+		{
+			try
+			{
+				Assert.IsFalse(Directory.Exists(@"fict_ctid"));
+				Directory.CreateDirectory(@"fict_ctid");
+				Directory.CreateDirectory(@"fict_ctid\folder1");
+				File.WriteAllText(@"fict_ctid\file1", "sometext1");
+				File.WriteAllText(@"fict_ctid\file2", "sometext2");
+				File.WriteAllText(@"fict_ctid\folder1\file3", "sometext3");
+
+				FileItemCatalog fileItemCatalog1 = new FileItemCatalog();
+				{
+					var catalogFileResults1 = fileItemCatalog1.CatalogFilesInDirectory(@"fict_ctid", "*", false, (str) => { });
+					Assert.AreEqual(3, catalogFileResults1.Count);
+					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1[@"fict_ctid\file1"]);
+					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1[@"fict_ctid\file2"]);
+					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1[@"fict_ctid\folder1\file3"]);
+					Assert.AreEqual(3, fileItemCatalog1.Count);
+					{
+						Assert.AreEqual(1, fileItemCatalog1.First().FileLocations.Count);
+						Assert.AreEqual(@"fict_ctid\file1", fileItemCatalog1.First().FileLocations.First().FullPath);
+					}
+					{
+						Assert.AreEqual(1, fileItemCatalog1.Skip(1).First().FileLocations.Count);
+						Assert.AreEqual(@"fict_ctid\file2", fileItemCatalog1.Skip(1).First().FileLocations.First().FullPath);
+					}
+					{
+						Assert.AreEqual(1, fileItemCatalog1.Skip(2).First().FileLocations.Count);
+						Assert.AreEqual(@"fict_ctid\folder1\file3", fileItemCatalog1.Skip(2).First().FileLocations.First().FullPath);
+					}
+				}
+				{
+					File.WriteAllText(@"fict_ctid\folder1\file4", "sometext4");
+					var checkFileResults1 = fileItemCatalog1.CheckFilesInDirectory(@"fict_ctid", "*", false, (str) => { });
+					Assert.AreEqual(4, checkFileResults1.Count);
+					Assert.AreEqual(CheckFileResult.Exists, checkFileResults1[@"fict_ctid\file1"]);
+					Assert.AreEqual(CheckFileResult.Exists, checkFileResults1[@"fict_ctid\file2"]);
+					Assert.AreEqual(CheckFileResult.Exists, checkFileResults1[@"fict_ctid\folder1\file3"]);
+					Assert.AreEqual(CheckFileResult.New, checkFileResults1[@"fict_ctid\folder1\file4"]);
+				}
+			}
+			finally
+			{
+				Directory.Delete(@"fict_ctid", true);
+			}
+		}
+
+		public static void CheckFilesInDirectory_ChangedFile()
+		{
+			try
+			{
+				Assert.IsFalse(Directory.Exists(@"fict_ctid"));
+				Directory.CreateDirectory(@"fict_ctid");
+				Directory.CreateDirectory(@"fict_ctid\folder1");
+				File.WriteAllText(@"fict_ctid\file1", "sometext1");
+				File.WriteAllText(@"fict_ctid\file2", "sometext2");
+				File.WriteAllText(@"fict_ctid\folder1\file3", "sometext3");
+
+				FileItemCatalog fileItemCatalog1 = new FileItemCatalog();
+				{
+					var catalogFileResults1 = fileItemCatalog1.CatalogFilesInDirectory(@"fict_ctid", "*", false, (str) => { });
+					Assert.AreEqual(3, catalogFileResults1.Count);
+					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1[@"fict_ctid\file1"]);
+					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1[@"fict_ctid\file2"]);
+					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1[@"fict_ctid\folder1\file3"]);
+					Assert.AreEqual(3, fileItemCatalog1.Count);
+					{
+						Assert.AreEqual(1, fileItemCatalog1.First().FileLocations.Count);
+						Assert.AreEqual(@"fict_ctid\file1", fileItemCatalog1.First().FileLocations.First().FullPath);
+					}
+					{
+						Assert.AreEqual(1, fileItemCatalog1.Skip(1).First().FileLocations.Count);
+						Assert.AreEqual(@"fict_ctid\file2", fileItemCatalog1.Skip(1).First().FileLocations.First().FullPath);
+					}
+					{
+						Assert.AreEqual(1, fileItemCatalog1.Skip(2).First().FileLocations.Count);
+						Assert.AreEqual(@"fict_ctid\folder1\file3", fileItemCatalog1.Skip(2).First().FileLocations.First().FullPath);
+					}
+				}
+				{
+					File.WriteAllText(@"fict_ctid\file2", "sometextXzzz");
+					var checkFileResults1 = fileItemCatalog1.CheckFilesInDirectory(@"fict_ctid", "*", false, (str) => { });
+					Assert.AreEqual(3, checkFileResults1.Count);
+					Assert.AreEqual(CheckFileResult.Exists, checkFileResults1[@"fict_ctid\file1"]);
+					Assert.AreEqual(CheckFileResult.New, checkFileResults1[@"fict_ctid\file2"]);
+					Assert.AreEqual(CheckFileResult.Exists, checkFileResults1[@"fict_ctid\folder1\file3"]);
+				}
+			}
+			finally
+			{
+				Directory.Delete(@"fict_ctid", true);
+			}
+		}
+		
+		public static void CheckFilesInDirectory_ChangedFileIdenticalToAnother()
+		{
+			try
+			{
+				Assert.IsFalse(Directory.Exists(@"fict_ctid"));
+				Directory.CreateDirectory(@"fict_ctid");
+				Directory.CreateDirectory(@"fict_ctid\folder1");
+				File.WriteAllText(@"fict_ctid\file1", "sometext1");
+				File.WriteAllText(@"fict_ctid\file2", "sometext2");
+				File.WriteAllText(@"fict_ctid\folder1\file3", "sometext3");
+
+				FileItemCatalog fileItemCatalog1 = new FileItemCatalog();
+				{
+					var catalogFileResults1 = fileItemCatalog1.CatalogFilesInDirectory(@"fict_ctid", "*", false, (str) => { });
+					Assert.AreEqual(3, catalogFileResults1.Count);
+					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1[@"fict_ctid\file1"]);
+					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1[@"fict_ctid\file2"]);
+					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1[@"fict_ctid\folder1\file3"]);
+					Assert.AreEqual(3, fileItemCatalog1.Count);
+					{
+						Assert.AreEqual(1, fileItemCatalog1.First().FileLocations.Count);
+						Assert.AreEqual(@"fict_ctid\file1", fileItemCatalog1.First().FileLocations.First().FullPath);
+					}
+					{
+						Assert.AreEqual(1, fileItemCatalog1.Skip(1).First().FileLocations.Count);
+						Assert.AreEqual(@"fict_ctid\file2", fileItemCatalog1.Skip(1).First().FileLocations.First().FullPath);
+					}
+					{
+						Assert.AreEqual(1, fileItemCatalog1.Skip(2).First().FileLocations.Count);
+						Assert.AreEqual(@"fict_ctid\folder1\file3", fileItemCatalog1.Skip(2).First().FileLocations.First().FullPath);
+					}
+				}
+				{
+					File.WriteAllText(@"fict_ctid\file2", "sometext3");
+					var checkFileResults1 = fileItemCatalog1.CheckFilesInDirectory(@"fict_ctid", "*", false, (str) => { });
+					Assert.AreEqual(3, checkFileResults1.Count);
+					Assert.AreEqual(CheckFileResult.Exists, checkFileResults1[@"fict_ctid\file1"]);
+					Assert.AreEqual(CheckFileResult.Exists, checkFileResults1[@"fict_ctid\file2"]);
+					Assert.AreEqual(CheckFileResult.Exists, checkFileResults1[@"fict_ctid\folder1\file3"]);
+				}
+			}
+			finally
+			{
+				Directory.Delete(@"fict_ctid", true);
+			}
+		}
+
 		#endregion Tests
 	}
 }

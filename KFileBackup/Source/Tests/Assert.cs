@@ -27,22 +27,16 @@ namespace KFileBackup.Tests
 			if (!actual.Equals(expected)) { throw new ApplicationException("actual result should equal expected but doesn't"); }
 		}
 
-		public static void AreNotEqual(AddOrMergeResult expected, AddOrMergeResult actual)
-		{
-			if (expected.Equals(actual)) { throw new ApplicationException("expected result incorrectly equals actual"); }
-			if (actual.Equals(expected)) { throw new ApplicationException("actual result incorrectly equals expected"); }
-		}
-
 		public static void AreEqual(CatalogFileResult expected, CatalogFileResult actual)
 		{
 			if (!expected.Equals(actual)) { throw new ApplicationException("expected result should equal actual but doesn't"); }
 			if (!actual.Equals(expected)) { throw new ApplicationException("actual result should equal expected but doesn't"); }
 		}
-
-		public static void AreNotEqual(CatalogFileResult expected, CatalogFileResult actual)
+		
+		public static void AreEqual(CheckFileResult expected, CheckFileResult actual)
 		{
-			if (expected.Equals(actual)) { throw new ApplicationException("expected result incorrectly equals actual"); }
-			if (actual.Equals(expected)) { throw new ApplicationException("actual result incorrectly equals expected"); }
+			if (!expected.Equals(actual)) { throw new ApplicationException("expected result should equal actual but doesn't"); }
+			if (!actual.Equals(expected)) { throw new ApplicationException("actual result should equal expected but doesn't"); }
 		}
 
 		public static void SequenceEquals<T>(IEnumerable<T> expected, IEnumerable<T> actual)
