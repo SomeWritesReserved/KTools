@@ -13,13 +13,13 @@ namespace KFileBackup.Tests
 		{
 			{
 				FileItem fileItem1 = new FileItem(new Hash());
-				Assert.AreEqual(0, fileItem1.Hash.Value);
+				Assert.AreEqual(0, fileItem1.Hash.GetHashCode());
 				Assert.AreEqual(new Hash(), fileItem1.Hash);
 			}
 			{
-				FileItem fileItem2 = new FileItem(new Hash(1512));
-				Assert.AreEqual(1512, fileItem2.Hash.Value);
-				Assert.AreEqual(new Hash(1512), fileItem2.Hash);
+				FileItem fileItem2 = new FileItem(TestHelper.Hash(1512));
+				Assert.AreEqual(1512, fileItem2.Hash.GetHashCode());
+				Assert.AreEqual(TestHelper.Hash(1512), fileItem2.Hash);
 			}
 		}
 
@@ -32,26 +32,26 @@ namespace KFileBackup.Tests
 				Assert.AreEqual(fileItem1.GetHashCode(), fileItem2.GetHashCode());
 			}
 			{
-				FileItem fileItem1 = new FileItem(new Hash(123));
-				FileItem fileItem2 = new FileItem(new Hash(123));
+				FileItem fileItem1 = new FileItem(TestHelper.Hash(123));
+				FileItem fileItem2 = new FileItem(TestHelper.Hash(123));
 				Assert.AreEqual(fileItem1, fileItem2);
 				Assert.AreEqual(fileItem1.GetHashCode(), fileItem2.GetHashCode());
 			}
 			{
-				FileItem fileItem1 = new FileItem(new Hash(123));
-				FileItem fileItem2 = new FileItem(new Hash(456));
+				FileItem fileItem1 = new FileItem(TestHelper.Hash(123));
+				FileItem fileItem2 = new FileItem(TestHelper.Hash(456));
 				Assert.AreNotEqual(fileItem1, fileItem2);
 				Assert.AreNotEqual(fileItem1.GetHashCode(), fileItem2.GetHashCode());
 			}
 			{
-				FileItem fileItem1 = new FileItem(new Hash(123), new FileLocation("asd", false));
-				FileItem fileItem2 = new FileItem(new Hash(123));
+				FileItem fileItem1 = new FileItem(TestHelper.Hash(123), new FileLocation("asd", false));
+				FileItem fileItem2 = new FileItem(TestHelper.Hash(123));
 				Assert.AreEqual(fileItem1, fileItem2);
 				Assert.AreEqual(fileItem1.GetHashCode(), fileItem2.GetHashCode());
 			}
 			{
-				FileItem fileItem1 = new FileItem(new Hash(123));
-				FileItem fileItem2 = new FileItem(new Hash(456), new FileLocation("ffff", true));
+				FileItem fileItem1 = new FileItem(TestHelper.Hash(123));
+				FileItem fileItem2 = new FileItem(TestHelper.Hash(456), new FileLocation("ffff", true));
 				Assert.AreNotEqual(fileItem1, fileItem2);
 				Assert.AreNotEqual(fileItem1.GetHashCode(), fileItem2.GetHashCode());
 			}

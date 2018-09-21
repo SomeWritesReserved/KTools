@@ -47,7 +47,7 @@ namespace KFileBackup
 					Program.log($"Cataloging {directory} (on '{drive.VolumeLabel}')...");
 					if (isFromReadOnlyLocation) { Program.log("Treating as readonly volume"); }
 					fileItemCatalog.CatalogFilesInDirectory(directory, "*", isFromReadOnlyLocation, Program.log);
-					fileItemCatalog.SaveCatalogToFile(Program.catalogFileName);
+					fileItemCatalog.WriteCatalogToFile(Program.catalogFileName);
 				}
 				else if (args.FirstOrDefault() == "check")
 				{
@@ -123,7 +123,7 @@ namespace KFileBackup
 				else if (args.FirstOrDefault() == "view")
 				{
 					string fileHashHex = args.Last();
-					if (!long.TryParse(fileHashHex, System.Globalization.NumberStyles.HexNumber, null, out long fileHash)) { throw new ArgumentException($"{fileHashHex} is not a hash."); }
+					if (!Hash.TryParse(fileHashHex, out Hash fileHash)) { throw new ArgumentException($"{fileHashHex} is not a hash."); }
 
 					if (!File.Exists(Program.catalogFileName)) { throw new ArgumentException("No saved catalog exists, nothing to view. Run 'catalog' command."); }
 
@@ -132,7 +132,7 @@ namespace KFileBackup
 					fileItemCatalog.ReadCatalogFromFile(Program.catalogFileName);
 
 					Program.log($"Viewing hash '{fileHashHex}'");
-					if (!fileItemCatalog.TryGetValue(new Hash(fileHash), out FileItem fileItem))
+					if (!fileItemCatalog.TryGetValue(fileHash, out FileItem fileItem))
 					{
 						Program.log($" No files.");
 					}
@@ -185,6 +185,8 @@ namespace KFileBackup
 
 		private static void runTests()
 		{
+			int failedTestCount = 0;
+			int problemCount = 0;
 			foreach (Type testSuiteType in Assembly.GetExecutingAssembly().GetTypes()
 				.Where((type) => type.Namespace == "KFileBackup.Tests" && type.Name.EndsWith("Test")))
 			{
@@ -194,18 +196,21 @@ namespace KFileBackup
 					try
 					{
 						testMethod.Invoke(null, null);
-						Program.log("  {0}", testMethod.Name);
+						Program.log("   {0}", testMethod.Name);
 					}
 					catch (ApplicationException applicationException)
 					{
-						Program.log("  {0} FAILED: {1}", testMethod.Name, applicationException.InnerException.Message);
+						Program.log(" ! {0} failed: {1}", testMethod.Name, applicationException.InnerException.Message);
+						failedTestCount++;
 					}
 					catch (Exception exception)
 					{
-						Program.log("  {0} ERROR: {1} - {2}", testMethod.Name, exception.GetType().Name, exception.Message);
+						Program.log(" # {0} PROBLEM: {1} - {2}", testMethod.Name, exception.GetType().Name, exception.Message);
+						problemCount++;
 					}
 				}
 			}
+			Program.log($"Done. {failedTestCount} failures, {problemCount} problems.");
 		}
 
 		private static void log()

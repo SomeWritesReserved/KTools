@@ -12,6 +12,7 @@ namespace KFileBackup.Tests
 		{
 			if (!expected.Equals(actual)) { throw new ApplicationException("expected should equal actual but doesn't"); }
 			if (!actual.Equals(expected)) { throw new ApplicationException("actual should equal expected but doesn't"); }
+			if (expected.GetHashCode() != actual.GetHashCode()) { throw new ApplicationException("expected and actual equal but their hashcodes don't"); }
 		}
 
 		public static void AreNotEqual<T>(T expected, T actual)
@@ -32,7 +33,7 @@ namespace KFileBackup.Tests
 			if (!expected.Equals(actual)) { throw new ApplicationException("expected result should equal actual but doesn't"); }
 			if (!actual.Equals(expected)) { throw new ApplicationException("actual result should equal expected but doesn't"); }
 		}
-		
+
 		public static void AreEqual(CheckFileResult expected, CheckFileResult actual)
 		{
 			if (!expected.Equals(actual)) { throw new ApplicationException("expected result should equal actual but doesn't"); }

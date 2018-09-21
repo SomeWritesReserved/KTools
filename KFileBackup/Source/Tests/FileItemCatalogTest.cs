@@ -15,37 +15,37 @@ namespace KFileBackup.Tests
 			{
 				FileItemCatalog fileItemCatalog1 = new FileItemCatalog();
 				Assert.AreEqual(0, fileItemCatalog1.Count);
-				fileItemCatalog1.Add(new FileItem(new Hash(1)));
+				fileItemCatalog1.Add(new FileItem(TestHelper.Hash(1)));
 				Assert.AreEqual(1, fileItemCatalog1.Count);
-				Assert.AreEqual(new FileItem(new Hash(1)), fileItemCatalog1.Single());
-				Assert.IsTrue(fileItemCatalog1.TryGetValue(new Hash(1), out FileItem fileItem1));
-				Assert.AreEqual(new FileItem(new Hash(1)), fileItem1);
-				Assert.SequenceEquals(new[] { new FileItem(new Hash(1)) }, fileItemCatalog1);
+				Assert.AreEqual(new FileItem(TestHelper.Hash(1)), fileItemCatalog1.Single());
+				Assert.IsTrue(fileItemCatalog1.TryGetValue(TestHelper.Hash(1), out FileItem fileItem1));
+				Assert.AreEqual(new FileItem(TestHelper.Hash(1)), fileItem1);
+				Assert.SequenceEquals(new[] { new FileItem(TestHelper.Hash(1)) }, fileItemCatalog1);
 
 			}
 			{
 				FileItemCatalog fileItemCatalog2 = new FileItemCatalog();
 				Assert.AreEqual(0, fileItemCatalog2.Count);
-				fileItemCatalog2.Add(new FileItem(new Hash(22)));
-				fileItemCatalog2.Add(new FileItem(new Hash(33)));
-				fileItemCatalog2.Add(new FileItem(new Hash(44)));
+				fileItemCatalog2.Add(new FileItem(TestHelper.Hash(22)));
+				fileItemCatalog2.Add(new FileItem(TestHelper.Hash(33)));
+				fileItemCatalog2.Add(new FileItem(TestHelper.Hash(44)));
 				Assert.AreEqual(3, fileItemCatalog2.Count);
 				{
-					Assert.AreEqual(new FileItem(new Hash(22)), fileItemCatalog2.First());
-					Assert.IsTrue(fileItemCatalog2.TryGetValue(new Hash(22), out FileItem fileItem22));
-					Assert.AreEqual(new FileItem(new Hash(22)), fileItem22);
+					Assert.AreEqual(new FileItem(TestHelper.Hash(22)), fileItemCatalog2.First());
+					Assert.IsTrue(fileItemCatalog2.TryGetValue(TestHelper.Hash(22), out FileItem fileItem22));
+					Assert.AreEqual(new FileItem(TestHelper.Hash(22)), fileItem22);
 				}
 				{
-					Assert.AreEqual(new FileItem(new Hash(33)), fileItemCatalog2.Skip(1).First());
-					Assert.IsTrue(fileItemCatalog2.TryGetValue(new Hash(33), out FileItem fileItem33));
-					Assert.AreEqual(new FileItem(new Hash(33)), fileItem33);
+					Assert.AreEqual(new FileItem(TestHelper.Hash(33)), fileItemCatalog2.Skip(1).First());
+					Assert.IsTrue(fileItemCatalog2.TryGetValue(TestHelper.Hash(33), out FileItem fileItem33));
+					Assert.AreEqual(new FileItem(TestHelper.Hash(33)), fileItem33);
 				}
 				{
-					Assert.AreEqual(new FileItem(new Hash(44)), fileItemCatalog2.Skip(2).First());
-					Assert.IsTrue(fileItemCatalog2.TryGetValue(new Hash(44), out FileItem fileItem44));
-					Assert.AreEqual(new FileItem(new Hash(44)), fileItem44);
+					Assert.AreEqual(new FileItem(TestHelper.Hash(44)), fileItemCatalog2.Skip(2).First());
+					Assert.IsTrue(fileItemCatalog2.TryGetValue(TestHelper.Hash(44), out FileItem fileItem44));
+					Assert.AreEqual(new FileItem(TestHelper.Hash(44)), fileItem44);
 				}
-				Assert.SequenceEquals(new[] { new FileItem(new Hash(22)), new FileItem(new Hash(33)), new FileItem(new Hash(44)) }, fileItemCatalog2);
+				Assert.SequenceEquals(new[] { new FileItem(TestHelper.Hash(22)), new FileItem(TestHelper.Hash(33)), new FileItem(TestHelper.Hash(44)) }, fileItemCatalog2);
 			}
 		}
 
@@ -54,19 +54,19 @@ namespace KFileBackup.Tests
 			{
 				FileItemCatalog fileItemCatalog1 = new FileItemCatalog();
 				Assert.AreEqual(0, fileItemCatalog1.Count);
-				fileItemCatalog1.Add(new FileItem(new Hash(22)));
+				fileItemCatalog1.Add(new FileItem(TestHelper.Hash(22)));
 				Assert.AreEqual(1, fileItemCatalog1.Count);
-				Assert.AreEqual(new FileItem(new Hash(22)), fileItemCatalog1.Single());
-				Assert.Throws<ArgumentException>(() => fileItemCatalog1.Add(new FileItem(new Hash(22))));
+				Assert.AreEqual(new FileItem(TestHelper.Hash(22)), fileItemCatalog1.Single());
+				Assert.Throws<ArgumentException>(() => fileItemCatalog1.Add(new FileItem(TestHelper.Hash(22))));
 			}
 			{
 				FileItemCatalog fileItemCatalog1 = new FileItemCatalog();
 				Assert.AreEqual(0, fileItemCatalog1.Count);
-				fileItemCatalog1.Add(new FileItem(new Hash(22)));
-				fileItemCatalog1.Add(new FileItem(new Hash(33)));
-				fileItemCatalog1.Add(new FileItem(new Hash(44)));
+				fileItemCatalog1.Add(new FileItem(TestHelper.Hash(22)));
+				fileItemCatalog1.Add(new FileItem(TestHelper.Hash(33)));
+				fileItemCatalog1.Add(new FileItem(TestHelper.Hash(44)));
 				Assert.AreEqual(3, fileItemCatalog1.Count);
-				Assert.Throws<ArgumentException>(() => fileItemCatalog1.Add(new FileItem(new Hash(33))));
+				Assert.Throws<ArgumentException>(() => fileItemCatalog1.Add(new FileItem(TestHelper.Hash(33))));
 			}
 		}
 
@@ -75,35 +75,35 @@ namespace KFileBackup.Tests
 			{
 				FileItemCatalog fileItemCatalog1 = new FileItemCatalog();
 				Assert.AreEqual(0, fileItemCatalog1.Count);
-				Assert.AreEqual(AddOrMergeResult.Added, fileItemCatalog1.AddOrMerge(new FileItem(new Hash(134))));
+				Assert.AreEqual(AddOrMergeResult.Added, fileItemCatalog1.AddOrMerge(new FileItem(TestHelper.Hash(134))));
 				Assert.AreEqual(1, fileItemCatalog1.Count);
-				Assert.AreEqual(new FileItem(new Hash(134)), fileItemCatalog1.Single());
-				Assert.IsTrue(fileItemCatalog1.TryGetValue(new Hash(134), out FileItem fileItem1));
-				Assert.AreEqual(new FileItem(new Hash(134)), fileItem1);
-				Assert.SequenceEquals(new[] { new FileItem(new Hash(134)) }, fileItemCatalog1);
+				Assert.AreEqual(new FileItem(TestHelper.Hash(134)), fileItemCatalog1.Single());
+				Assert.IsTrue(fileItemCatalog1.TryGetValue(TestHelper.Hash(134), out FileItem fileItem1));
+				Assert.AreEqual(new FileItem(TestHelper.Hash(134)), fileItem1);
+				Assert.SequenceEquals(new[] { new FileItem(TestHelper.Hash(134)) }, fileItemCatalog1);
 			}
 			{
 				FileItemCatalog fileItemCatalog1 = new FileItemCatalog();
 				Assert.AreEqual(0, fileItemCatalog1.Count);
-				Assert.AreEqual(AddOrMergeResult.Added, fileItemCatalog1.AddOrMerge(new FileItem(new Hash(134), new FileLocation(@"C:\file1", true))));
+				Assert.AreEqual(AddOrMergeResult.Added, fileItemCatalog1.AddOrMerge(new FileItem(TestHelper.Hash(134), new FileLocation(@"C:\file1", true))));
 				Assert.AreEqual(1, fileItemCatalog1.Count);
-				Assert.AreEqual(new FileItem(new Hash(134)), fileItemCatalog1.Single());
+				Assert.AreEqual(new FileItem(TestHelper.Hash(134)), fileItemCatalog1.Single());
 				Assert.AreEqual(@"C:\file1", fileItemCatalog1.Single().FileLocations.Single().FullPath);
-				Assert.IsTrue(fileItemCatalog1.TryGetValue(new Hash(134), out FileItem fileItem1));
-				Assert.AreEqual(new FileItem(new Hash(134)), fileItem1);
+				Assert.IsTrue(fileItemCatalog1.TryGetValue(TestHelper.Hash(134), out FileItem fileItem1));
+				Assert.AreEqual(new FileItem(TestHelper.Hash(134)), fileItem1);
 				Assert.AreEqual(@"C:\file1", fileItem1.FileLocations.Single().FullPath);
-				Assert.SequenceEquals(new[] { new FileItem(new Hash(134)) }, fileItemCatalog1);
+				Assert.SequenceEquals(new[] { new FileItem(TestHelper.Hash(134)) }, fileItemCatalog1);
 			}
 			{
 				FileItemCatalog fileItemCatalog1 = new FileItemCatalog();
-				Assert.AreEqual(AddOrMergeResult.Added, fileItemCatalog1.AddOrMerge(new FileItem(new Hash(134), new FileLocation(@"C:\file1", true))));
-				Assert.AreEqual(AddOrMergeResult.Added, fileItemCatalog1.AddOrMerge(new FileItem(new Hash(456), new FileLocation(@"C:\filezzz", false))));
-				Assert.AreEqual(AddOrMergeResult.Merged, fileItemCatalog1.AddOrMerge(new FileItem(new Hash(134), new FileLocation(@"C:\file2", false))));
+				Assert.AreEqual(AddOrMergeResult.Added, fileItemCatalog1.AddOrMerge(new FileItem(TestHelper.Hash(134), new FileLocation(@"C:\file1", true))));
+				Assert.AreEqual(AddOrMergeResult.Added, fileItemCatalog1.AddOrMerge(new FileItem(TestHelper.Hash(456), new FileLocation(@"C:\filezzz", false))));
+				Assert.AreEqual(AddOrMergeResult.Merged, fileItemCatalog1.AddOrMerge(new FileItem(TestHelper.Hash(134), new FileLocation(@"C:\file2", false))));
 				Assert.AreEqual(2, fileItemCatalog1.Count);
-				Assert.AreEqual(new FileItem(new Hash(134)), fileItemCatalog1.First());
-				Assert.AreEqual(new FileItem(new Hash(456)), fileItemCatalog1.Skip(1).First());
+				Assert.AreEqual(new FileItem(TestHelper.Hash(134)), fileItemCatalog1.First());
+				Assert.AreEqual(new FileItem(TestHelper.Hash(456)), fileItemCatalog1.Skip(1).First());
 				{
-					Assert.IsTrue(fileItemCatalog1.TryGetValue(new Hash(134), out FileItem fileItem1));
+					Assert.IsTrue(fileItemCatalog1.TryGetValue(TestHelper.Hash(134), out FileItem fileItem1));
 					Assert.AreEqual(2, fileItem1.FileLocations.Count);
 					Assert.AreEqual(@"C:\file1", fileItem1.FileLocations.First().FullPath);
 					Assert.AreEqual(true, fileItem1.FileLocations.First().IsFromReadOnlyLocation);
@@ -111,7 +111,7 @@ namespace KFileBackup.Tests
 					Assert.AreEqual(false, fileItem1.FileLocations.Skip(1).First().IsFromReadOnlyLocation);
 				}
 				{
-					Assert.IsTrue(fileItemCatalog1.TryGetValue(new Hash(456), out FileItem fileItem2));
+					Assert.IsTrue(fileItemCatalog1.TryGetValue(TestHelper.Hash(456), out FileItem fileItem2));
 					Assert.AreEqual(1, fileItem2.FileLocations.Count);
 					Assert.AreEqual(@"C:\filezzz", fileItem2.FileLocations.First().FullPath);
 					Assert.AreEqual(false, fileItem2.FileLocations.First().IsFromReadOnlyLocation);
@@ -119,12 +119,12 @@ namespace KFileBackup.Tests
 			}
 			{
 				FileItemCatalog fileItemCatalog1 = new FileItemCatalog();
-				Assert.AreEqual(AddOrMergeResult.Added, fileItemCatalog1.AddOrMerge(new FileItem(new Hash(134), new FileLocation(@"C:\file1", true))));
-				Assert.AreEqual(AddOrMergeResult.Same, fileItemCatalog1.AddOrMerge(new FileItem(new Hash(134), new FileLocation(@"C:\file1", true))));
+				Assert.AreEqual(AddOrMergeResult.Added, fileItemCatalog1.AddOrMerge(new FileItem(TestHelper.Hash(134), new FileLocation(@"C:\file1", true))));
+				Assert.AreEqual(AddOrMergeResult.Same, fileItemCatalog1.AddOrMerge(new FileItem(TestHelper.Hash(134), new FileLocation(@"C:\file1", true))));
 				Assert.AreEqual(1, fileItemCatalog1.Count);
-				Assert.AreEqual(new FileItem(new Hash(134)), fileItemCatalog1.First());
+				Assert.AreEqual(new FileItem(TestHelper.Hash(134)), fileItemCatalog1.First());
 				{
-					Assert.IsTrue(fileItemCatalog1.TryGetValue(new Hash(134), out FileItem fileItem1));
+					Assert.IsTrue(fileItemCatalog1.TryGetValue(TestHelper.Hash(134), out FileItem fileItem1));
 					Assert.AreEqual(1, fileItem1.FileLocations.Count);
 					Assert.AreEqual(@"C:\file1", fileItem1.FileLocations.First().FullPath);
 					Assert.AreEqual(true, fileItem1.FileLocations.First().IsFromReadOnlyLocation);
@@ -136,10 +136,10 @@ namespace KFileBackup.Tests
 		{
 			{
 				FileItemCatalog fileItemCatalog1 = new FileItemCatalog();
-				FileItem fileItem1 = new FileItem(new Hash(123));
+				FileItem fileItem1 = new FileItem(TestHelper.Hash(123));
 				fileItem1.FileLocations.Add(new FileLocation(@"C:\file1", true));
 				fileItem1.FileLocations.Add(new FileLocation(@"C:\file2", false));
-				FileItem fileItem2 = new FileItem(new Hash(123));
+				FileItem fileItem2 = new FileItem(TestHelper.Hash(123));
 				fileItem2.FileLocations.Add(new FileLocation(@"C:\file2", false));
 				Assert.AreEqual(AddOrMergeResult.Added, fileItemCatalog1.AddOrMerge(fileItem1));
 				Assert.AreEqual(AddOrMergeResult.Same, fileItemCatalog1.AddOrMerge(fileItem2));
@@ -148,10 +148,10 @@ namespace KFileBackup.Tests
 			}
 			{
 				FileItemCatalog fileItemCatalog1 = new FileItemCatalog();
-				FileItem fileItem1 = new FileItem(new Hash(123));
+				FileItem fileItem1 = new FileItem(TestHelper.Hash(123));
 				fileItem1.FileLocations.Add(new FileLocation(@"C:\file1", true));
 				fileItem1.FileLocations.Add(new FileLocation(@"C:\file2", false));
-				FileItem fileItem2 = new FileItem(new Hash(123));
+				FileItem fileItem2 = new FileItem(TestHelper.Hash(123));
 				fileItem2.FileLocations.Add(new FileLocation(@"C:\file1", true));
 				fileItem2.FileLocations.Add(new FileLocation(@"C:\file2", false));
 				Assert.AreEqual(AddOrMergeResult.Added, fileItemCatalog1.AddOrMerge(fileItem1));
@@ -161,10 +161,10 @@ namespace KFileBackup.Tests
 			}
 			{
 				FileItemCatalog fileItemCatalog1 = new FileItemCatalog();
-				FileItem fileItem1 = new FileItem(new Hash(123));
+				FileItem fileItem1 = new FileItem(TestHelper.Hash(123));
 				fileItem1.FileLocations.Add(new FileLocation(@"C:\file1", true));
 				fileItem1.FileLocations.Add(new FileLocation(@"C:\file2", false));
-				FileItem fileItem2 = new FileItem(new Hash(123));
+				FileItem fileItem2 = new FileItem(TestHelper.Hash(123));
 				fileItem2.FileLocations.Add(new FileLocation(@"C:\file1", true));
 				fileItem2.FileLocations.Add(new FileLocation(@"C:\file3", false));
 				Assert.AreEqual(AddOrMergeResult.Added, fileItemCatalog1.AddOrMerge(fileItem1));
@@ -174,10 +174,10 @@ namespace KFileBackup.Tests
 			}
 			{
 				FileItemCatalog fileItemCatalog1 = new FileItemCatalog();
-				FileItem fileItem1 = new FileItem(new Hash(123));
+				FileItem fileItem1 = new FileItem(TestHelper.Hash(123));
 				fileItem1.FileLocations.Add(new FileLocation(@"C:\file1", true));
 				fileItem1.FileLocations.Add(new FileLocation(@"C:\file2", false));
-				FileItem fileItem2 = new FileItem(new Hash(123));
+				FileItem fileItem2 = new FileItem(TestHelper.Hash(123));
 				fileItem2.FileLocations.Add(new FileLocation(@"C:\file3", true));
 				fileItem2.FileLocations.Add(new FileLocation(@"C:\file4", false));
 				Assert.AreEqual(AddOrMergeResult.Added, fileItemCatalog1.AddOrMerge(fileItem1));
@@ -193,23 +193,23 @@ namespace KFileBackup.Tests
 			{
 				{
 					FileItemCatalog fileItemCatalog1 = new FileItemCatalog();
-					Assert.AreEqual(AddOrMergeResult.Added, fileItemCatalog1.AddOrMerge(new FileItem(new Hash(134), new FileLocation(@"C:\file1", true))));
-					Assert.AreEqual(AddOrMergeResult.Merged, fileItemCatalog1.AddOrMerge(new FileItem(new Hash(134), new FileLocation(@"C:\file2", false))));
-					Assert.AreEqual(AddOrMergeResult.Merged, fileItemCatalog1.AddOrMerge(new FileItem(new Hash(134), new FileLocation(@"C:\file3", false))));
-					Assert.AreEqual(AddOrMergeResult.Added, fileItemCatalog1.AddOrMerge(new FileItem(new Hash(999), new FileLocation(@"C:\blah", false))));
-					Assert.AreEqual(AddOrMergeResult.Added, fileItemCatalog1.AddOrMerge(new FileItem(new Hash(456), new FileLocation(@"C:\filezzz", false))));
-					Assert.AreEqual(AddOrMergeResult.Merged, fileItemCatalog1.AddOrMerge(new FileItem(new Hash(456), new FileLocation(@"C:\filezzz2", true))));
-					fileItemCatalog1.SaveCatalogToFile("unittestcatalog.bkc");
+					Assert.AreEqual(AddOrMergeResult.Added, fileItemCatalog1.AddOrMerge(new FileItem(TestHelper.Hash(134), new FileLocation(@"C:\file1", true))));
+					Assert.AreEqual(AddOrMergeResult.Merged, fileItemCatalog1.AddOrMerge(new FileItem(TestHelper.Hash(134), new FileLocation(@"C:\file2", false))));
+					Assert.AreEqual(AddOrMergeResult.Merged, fileItemCatalog1.AddOrMerge(new FileItem(TestHelper.Hash(134), new FileLocation(@"C:\file3", false))));
+					Assert.AreEqual(AddOrMergeResult.Added, fileItemCatalog1.AddOrMerge(new FileItem(TestHelper.Hash(999), new FileLocation(@"C:\blah", false))));
+					Assert.AreEqual(AddOrMergeResult.Added, fileItemCatalog1.AddOrMerge(new FileItem(TestHelper.Hash(456), new FileLocation(@"C:\filezzz", false))));
+					Assert.AreEqual(AddOrMergeResult.Merged, fileItemCatalog1.AddOrMerge(new FileItem(TestHelper.Hash(456), new FileLocation(@"C:\filezzz2", true))));
+					fileItemCatalog1.WriteCatalogToFile("unittestcatalog.bkc");
 				}
 				{
 					FileItemCatalog fileItemCatalog2 = new FileItemCatalog();
 					fileItemCatalog2.ReadCatalogFromFile("unittestcatalog.bkc");
 					Assert.AreEqual(3, fileItemCatalog2.Count);
-					Assert.AreEqual(new FileItem(new Hash(134)), fileItemCatalog2.First());
-					Assert.AreEqual(new FileItem(new Hash(999)), fileItemCatalog2.Skip(1).First());
-					Assert.AreEqual(new FileItem(new Hash(456)), fileItemCatalog2.Skip(2).First());
+					Assert.AreEqual(new FileItem(TestHelper.Hash(134)), fileItemCatalog2.First());
+					Assert.AreEqual(new FileItem(TestHelper.Hash(999)), fileItemCatalog2.Skip(1).First());
+					Assert.AreEqual(new FileItem(TestHelper.Hash(456)), fileItemCatalog2.Skip(2).First());
 					{
-						Assert.IsTrue(fileItemCatalog2.TryGetValue(new Hash(134), out FileItem fileItem1));
+						Assert.IsTrue(fileItemCatalog2.TryGetValue(TestHelper.Hash(134), out FileItem fileItem1));
 						Assert.AreEqual(3, fileItem1.FileLocations.Count);
 						Assert.AreEqual(@"C:\file1", fileItem1.FileLocations.First().FullPath);
 						Assert.AreEqual(true, fileItem1.FileLocations.First().IsFromReadOnlyLocation);
@@ -219,13 +219,13 @@ namespace KFileBackup.Tests
 						Assert.AreEqual(false, fileItem1.FileLocations.Skip(1).First().IsFromReadOnlyLocation);
 					}
 					{
-						Assert.IsTrue(fileItemCatalog2.TryGetValue(new Hash(999), out FileItem fileItem2));
+						Assert.IsTrue(fileItemCatalog2.TryGetValue(TestHelper.Hash(999), out FileItem fileItem2));
 						Assert.AreEqual(1, fileItem2.FileLocations.Count);
 						Assert.AreEqual(@"C:\blah", fileItem2.FileLocations.First().FullPath);
 						Assert.AreEqual(false, fileItem2.FileLocations.First().IsFromReadOnlyLocation);
 					}
 					{
-						Assert.IsTrue(fileItemCatalog2.TryGetValue(new Hash(456), out FileItem fileItem3));
+						Assert.IsTrue(fileItemCatalog2.TryGetValue(TestHelper.Hash(456), out FileItem fileItem3));
 						Assert.AreEqual(2, fileItem3.FileLocations.Count);
 						Assert.AreEqual(@"C:\filezzz", fileItem3.FileLocations.First().FullPath);
 						Assert.AreEqual(false, fileItem3.FileLocations.First().IsFromReadOnlyLocation);

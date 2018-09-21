@@ -16,7 +16,7 @@ namespace KFileBackup
 		#region Fields
 
 		private static readonly int fileFormatType = BitConverter.ToInt32(Encoding.ASCII.GetBytes("KBKC"), 0);
-		private static readonly int fileFormatVersion = 1;
+		private static readonly int fileFormatVersion = 2;
 
 		private readonly Dictionary<Hash, FileItem> fileItems = new Dictionary<Hash, FileItem>();
 
@@ -158,9 +158,9 @@ namespace KFileBackup
 		#region Helpers
 
 		/// <summary>
-		/// Saves the catalog to a file.
+		/// Writes the catalog to a file.
 		/// </summary>
-		public void SaveCatalogToFile(string catalogFile)
+		public void WriteCatalogToFile(string catalogFile)
 		{
 			using (BinaryWriter binaryWriter = new BinaryWriter(new FileStream(catalogFile, FileMode.Create, FileAccess.Write)))
 			{
@@ -170,7 +170,7 @@ namespace KFileBackup
 				binaryWriter.Write(this.Count);
 				foreach (FileItem fileItem in this)
 				{
-					binaryWriter.Write(fileItem.Hash.Value);
+					Hash.Write(fileItem.Hash, binaryWriter);
 					binaryWriter.Write(fileItem.FileLocations.Count);
 					foreach (FileLocation fileLocation in fileItem.FileLocations)
 					{
@@ -196,7 +196,7 @@ namespace KFileBackup
 				int fileItemCount = binaryReader.ReadInt32();
 				foreach (int fileItemIndex in Enumerable.Range(0, fileItemCount))
 				{
-					FileItem fileItem = new FileItem(new Hash(binaryReader.ReadInt64()));
+					FileItem fileItem = new FileItem(Hash.Read(binaryReader));
 					int fileLocationCount = binaryReader.ReadInt32();
 					foreach (int fileLocationIndex in Enumerable.Range(0, fileLocationCount))
 					{
