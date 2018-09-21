@@ -87,6 +87,7 @@ namespace KFileBackup
 				else if (args.FirstOrDefault() == "compare")
 				{
 					bool showAllFiles = args.Contains("--showall");
+					bool shouldDeleteDuplicates = args.Contains("--delete");
 					string baseDirectory = args[args.Length - 2];
 					string compareDirectory = args[args.Length - 1];
 					if (!Path.IsPathRooted(baseDirectory)) { throw new ArgumentException("Base directory must be a full, rooted path."); }
@@ -94,12 +95,30 @@ namespace KFileBackup
 					if (!Path.IsPathRooted(compareDirectory)) { throw new ArgumentException("Compare directory must be a full, rooted path."); }
 					if (!Directory.Exists(compareDirectory)) { throw new ArgumentException("Compare directory does not exist."); }
 
+					if (shouldDeleteDuplicates)
+					{
+						Program.log("Really delete files duplicated in compare directory?");
+						if (Console.ReadKey().Key != ConsoleKey.Y) { throw new OperationCanceledException("User cancelled the --delete option."); }
+						Program.log("Will delete all files duplicated in compare directory");
+						showAllFiles = true; // --delete implies --showall so the hashes of all deleted files are logged
+					}
+
 					FileItemCatalog fileItemCatalog = new FileItemCatalog();
 					Program.log($"Checking base directory {baseDirectory}...");
 					fileItemCatalog.CatalogFilesInDirectory(baseDirectory, "*", false, (str) => { });
 
 					Program.log($"Comparing compare directory {compareDirectory}...");
-					fileItemCatalog.CheckFilesInDirectory(compareDirectory, "*", showAllFiles, Program.log);
+					Dictionary<string, CheckFileResult> checkFileResults = fileItemCatalog.CheckFilesInDirectory(compareDirectory, "*", showAllFiles, Program.log);
+					if (shouldDeleteDuplicates)
+					{
+						Program.log("Deleting files already in catalog...");
+						foreach (string file in checkFileResults.Where((kvp) => kvp.Value == CheckFileResult.Exists)
+							.Select((kvp) => kvp.Key))
+						{
+							Program.log(file);
+							File.Delete(file);
+						}
+					}
 				}
 				else if (args.FirstOrDefault() == "view")
 				{
