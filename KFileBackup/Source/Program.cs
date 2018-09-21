@@ -12,6 +12,7 @@ namespace KFileBackup
 		#region Fields
 
 		private const string catalogFileName = "files.bkc";
+		private static string logFileName = "log.log";
 
 		#endregion Fields
 
@@ -28,6 +29,8 @@ namespace KFileBackup
 				}
 				else if (args.FirstOrDefault() == "catalog")
 				{
+					Program.logFileName = "log-Catalog.log";
+
 					bool isFromReadOnlyLocation = args.Contains("--readonly");
 					string directory = args.Last();
 					if (!Path.IsPathRooted(directory)) { throw new ArgumentException("Directory must be a full, rooted path."); }
@@ -48,23 +51,42 @@ namespace KFileBackup
 				}
 				else if (args.FirstOrDefault() == "check")
 				{
-					bool showAllFiles = args.Contains("--all");
+					bool showAllFiles = args.Contains("--showall");
+					bool shouldDeleteDuplicates = args.Contains("--delete");
 					string directory = args.Last();
 					if (!Path.IsPathRooted(directory)) { throw new ArgumentException("Directory must be a full, rooted path."); }
 					if (!Directory.Exists(directory)) { throw new ArgumentException("Directory does not exist."); }
 
 					if (!File.Exists(Program.catalogFileName)) { throw new ArgumentException("No saved catalog exists, nothing to check against. Run 'catalog' command."); }
 
+					if (shouldDeleteDuplicates)
+					{
+						Program.log("Really delete files already in catalog?");
+						if (Console.ReadKey().Key != ConsoleKey.Y) { throw new OperationCanceledException("User cancelled the --delete option."); }
+						Program.log("Will delete all files already in catalog");
+						showAllFiles = true; // --delete implies --showall so the hashes of all deleted files are logged
+					}
+
 					FileItemCatalog fileItemCatalog = new FileItemCatalog();
 					Program.log("Reading catalog from saved file...");
 					fileItemCatalog.ReadCatalogFromFile(Program.catalogFileName);
 
 					Program.log($"Checking {directory}...");
-					fileItemCatalog.CheckFilesInDirectory(directory, "*", showAllFiles, Program.log);
+					Dictionary<string, CheckFileResult> checkFileResults = fileItemCatalog.CheckFilesInDirectory(directory, "*", showAllFiles, Program.log);
+					if (shouldDeleteDuplicates)
+					{
+						Program.log("Deleting files already in catalog...");
+						foreach (string file in checkFileResults.Where((kvp) => kvp.Value == CheckFileResult.Exists)
+							.Select((kvp) => kvp.Key))
+						{
+							Program.log(file);
+							File.Delete(file);
+						}
+					}
 				}
 				else if (args.FirstOrDefault() == "compare")
 				{
-					bool showAllFiles = args.Contains("--all");
+					bool showAllFiles = args.Contains("--showall");
 					string baseDirectory = args[args.Length - 2];
 					string compareDirectory = args[args.Length - 1];
 					if (!Path.IsPathRooted(baseDirectory)) { throw new ArgumentException("Base directory must be a full, rooted path."); }
@@ -73,10 +95,10 @@ namespace KFileBackup
 					if (!Directory.Exists(compareDirectory)) { throw new ArgumentException("Compare directory does not exist."); }
 
 					FileItemCatalog fileItemCatalog = new FileItemCatalog();
-					Program.log($"Cataloging base directory {baseDirectory}...");
+					Program.log($"Checking base directory {baseDirectory}...");
 					fileItemCatalog.CatalogFilesInDirectory(baseDirectory, "*", false, (str) => { });
 
-					Program.log($"Checking compare directory {compareDirectory}...");
+					Program.log($"Comparing compare directory {compareDirectory}...");
 					fileItemCatalog.CheckFilesInDirectory(compareDirectory, "*", showAllFiles, Program.log);
 				}
 				else if (args.FirstOrDefault() == "view")
@@ -105,7 +127,7 @@ namespace KFileBackup
 				}
 				else if (args.FirstOrDefault() == "ls")
 				{
-					bool showAllFileLocations = args.Contains("--all");
+					bool showAllFileLocations = args.Contains("--showall");
 					if (!File.Exists(Program.catalogFileName)) { throw new ArgumentException("No saved catalog exists, nothing to list. Run 'catalog' command."); }
 
 					FileItemCatalog fileItemCatalog = new FileItemCatalog();
@@ -175,7 +197,7 @@ namespace KFileBackup
 		private static void log(string message)
 		{
 			Console.WriteLine(message);
-			File.AppendAllText("log.log", string.Format("{0:MM/dd/yyyy hh:mm:ss tt}: {1}{2}", DateTime.Now, message, Environment.NewLine));
+			File.AppendAllText(Program.logFileName, string.Format("{0:MM/dd/yyyy hh:mm:ss tt}: {1}{2}", DateTime.Now, message, Environment.NewLine));
 		}
 
 		private static void log(string message, params object[] args)
