@@ -54,7 +54,7 @@ namespace KFileBackup
 						volumeName = drive.VolumeLabel;
 					}
 
-					Program.log($"Cataloging {directory} (on '{volumeName}')...");
+					Program.log($"Cataloging {directory} (on '{volumeName}', format version {FileItemCatalog.FileFormatVersion})...");
 					if (isFromReadOnlyVolume) { Program.log("Treating as readonly volume"); }
 					fileItemCatalog.CatalogFilesInDirectory(directory, "*", volumeName, isFromReadOnlyVolume, Program.log);
 					fileItemCatalog.WriteCatalogToFile(Program.catalogFileName);
