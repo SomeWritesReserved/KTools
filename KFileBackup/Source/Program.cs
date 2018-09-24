@@ -31,7 +31,7 @@ namespace KFileBackup
 				{
 					Program.logFileName = "log-Catalog.log";
 
-					bool isFromReadOnlyLocation = args.Contains("--readonly");
+					bool isFromReadOnlyVolume = args.Contains("--readonly");
 					string directory = args.Last();
 					if (!Path.IsPathRooted(directory)) { throw new ArgumentException("Directory must be a full, rooted path."); }
 					if (!Directory.Exists(directory)) { throw new ArgumentException("Directory does not exist."); }
@@ -43,10 +43,20 @@ namespace KFileBackup
 						fileItemCatalog.ReadCatalogFromFile(Program.catalogFileName);
 					}
 
-					DriveInfo drive = DriveInfo.GetDrives().Single((driveInfo) => driveInfo.Name.Equals(Path.GetPathRoot(directory), StringComparison.OrdinalIgnoreCase));
-					Program.log($"Cataloging {directory} (on '{drive.VolumeLabel}')...");
-					if (isFromReadOnlyLocation) { Program.log("Treating as readonly volume"); }
-					fileItemCatalog.CatalogFilesInDirectory(directory, "*", isFromReadOnlyLocation, Program.log);
+					string volumeName;
+					if (args.Any((arg) => arg.StartsWith("--volumename:", StringComparison.OrdinalIgnoreCase)))
+					{
+						volumeName = args.Single((arg) => arg.StartsWith("--volumename:")).Substring("--volumename:".Length);
+					}
+					else
+					{
+						DriveInfo drive = DriveInfo.GetDrives().Single((driveInfo) => driveInfo.Name.Equals(Path.GetPathRoot(directory), StringComparison.OrdinalIgnoreCase));
+						volumeName = drive.VolumeLabel;
+					}
+
+					Program.log($"Cataloging {directory} (on '{volumeName}')...");
+					if (isFromReadOnlyVolume) { Program.log("Treating as readonly volume"); }
+					fileItemCatalog.CatalogFilesInDirectory(directory, "*", volumeName, isFromReadOnlyVolume, Program.log);
 					fileItemCatalog.WriteCatalogToFile(Program.catalogFileName);
 				}
 				else if (args.FirstOrDefault() == "check")
@@ -105,7 +115,7 @@ namespace KFileBackup
 
 					FileItemCatalog fileItemCatalog = new FileItemCatalog();
 					Program.log($"Checking base directory {baseDirectory}...");
-					fileItemCatalog.CatalogFilesInDirectory(baseDirectory, "*", false, (str) => { });
+					fileItemCatalog.CatalogFilesInDirectory(baseDirectory, "*", "Base directory", false, (str) => { });
 
 					Program.log($"Comparing compare directory {compareDirectory}...");
 					Dictionary<string, CheckFileResult> checkFileResults = fileItemCatalog.CheckFilesInDirectory(compareDirectory, "*", showAllFiles, Program.log);
@@ -140,7 +150,7 @@ namespace KFileBackup
 					{
 						foreach (FileLocation fileLocation in fileItem.FileLocations)
 						{
-							Program.log(" {0}{1}", fileLocation.IsFromReadOnlyLocation ? "*" : " ", fileLocation.FullPath);
+							Program.log(" {0}{1}", fileLocation.IsFromReadOnlyVolume ? "*" : " ", fileLocation.FullPath);
 						}
 					}
 				}
@@ -158,7 +168,7 @@ namespace KFileBackup
 						Program.log($"{fileItem.Hash}:");
 						foreach (FileLocation fileLocation in fileItem.FileLocations.OrderBy((fl) => fl))
 						{
-							Program.log(" {0}{1}", fileLocation.IsFromReadOnlyLocation ? "*" : " ", fileLocation.FullPath);
+							Program.log(" {0}{1}", fileLocation.IsFromReadOnlyVolume ? "*" : " ", fileLocation.FullPath);
 							if (!showAllFileLocations) { break; }
 						}
 					}

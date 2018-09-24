@@ -16,7 +16,7 @@ namespace KFileBackup
 		#region Fields
 
 		private static readonly int fileFormatType = BitConverter.ToInt32(Encoding.ASCII.GetBytes("KBKC"), 0);
-		private static readonly int fileFormatVersion = 2;
+		private static readonly int fileFormatVersion = 3;
 
 		private readonly Dictionary<Hash, FileItem> fileItems = new Dictionary<Hash, FileItem>();
 
@@ -63,7 +63,7 @@ namespace KFileBackup
 		/// <summary>
 		/// Finds all files in a directory and adds them to this catalog. Returns the results for each file found.
 		/// </summary>
-		public Dictionary<string, CatalogFileResult> CatalogFilesInDirectory(string directory, string searchPattern, bool isFromReadOnlyLocation, Action<string> log)
+		public Dictionary<string, CatalogFileResult> CatalogFilesInDirectory(string directory, string searchPattern, string volumeName, bool isFromReadOnlyVolume, Action<string> log)
 		{
 			log.Invoke("Finding files...");
 			string[] allFiles = Directory.GetFiles(directory, searchPattern, SearchOption.AllDirectories);
@@ -78,7 +78,7 @@ namespace KFileBackup
 				CatalogFileResult catalogFileResult;
 				try
 				{
-					fileItem = FileItem.CreateFromPath(file, isFromReadOnlyLocation);
+					fileItem = FileItem.CreateFromPath(file, volumeName, isFromReadOnlyVolume);
 					AddOrMergeResult addOrMergeResult = this.AddOrMerge(fileItem);
 					catalogFileResult = (CatalogFileResult)addOrMergeResult;
 					log.Invoke($"{addOrMergeResult}\t{fileItem.Hash}\t{file}");
@@ -115,7 +115,7 @@ namespace KFileBackup
 				CheckFileResult checkFileResult;
 				try
 				{
-					fileItem = FileItem.CreateFromPath(file, false);
+					fileItem = FileItem.CreateFromPath(file, string.Empty, false);
 					checkFileResult = this.TryGetValue(fileItem.Hash, out _) ? CheckFileResult.Exists : CheckFileResult.New;
 					if (checkFileResult == CheckFileResult.New || shouldLogAll)
 					{
@@ -175,7 +175,8 @@ namespace KFileBackup
 					foreach (FileLocation fileLocation in fileItem.FileLocations)
 					{
 						binaryWriter.Write(fileLocation.FullPath);
-						binaryWriter.Write(fileLocation.IsFromReadOnlyLocation);
+						binaryWriter.Write(fileLocation.VolumeName);
+						binaryWriter.Write(fileLocation.IsFromReadOnlyVolume);
 					}
 				}
 			}
@@ -201,8 +202,9 @@ namespace KFileBackup
 					foreach (int fileLocationIndex in Enumerable.Range(0, fileLocationCount))
 					{
 						string fullPath = binaryReader.ReadString();
-						bool isFromReadOnlyLocation = binaryReader.ReadBoolean();
-						fileItem.FileLocations.Add(new FileLocation(fullPath, isFromReadOnlyLocation));
+						string volumeName = binaryReader.ReadString();
+						bool isFromReadOnlyVolume = binaryReader.ReadBoolean();
+						fileItem.FileLocations.Add(new FileLocation(fullPath, volumeName, isFromReadOnlyVolume));
 					}
 					this.AddOrMerge(fileItem);
 				}

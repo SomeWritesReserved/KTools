@@ -14,22 +14,26 @@ namespace KFileBackup
 		#region Constructors
 
 		/// <summary>Constructor.</summary>
-		public FileLocation(string fullPath, bool isFromReadOnlyLocation)
+		public FileLocation(string fullPath, string volumeName, bool isFromReadOnlyVolume)
 		{
 			this.FullPath = fullPath;
-			this.IsFromReadOnlyLocation = isFromReadOnlyLocation;
+			this.VolumeName = volumeName;
+			this.IsFromReadOnlyVolume = isFromReadOnlyVolume;
 		}
 
 		#endregion Constructors
 
 		#region Properties
 
-		/// <summary>Gets the full path to this instance of a file.</summary>
+		/// <summary>Gets the full path to this instance of a file on its volume.</summary>
 		public string FullPath { get; }
 
-		/// <summary>Gets whether this file location is from a read-only location (drive, folder, etc.), and thus unable to change.</summary>
+		/// <summary>Gets the name of the volume that this instance of a file resides on.</summary>
+		public string VolumeName { get; }
+
+		/// <summary>Gets whether this file location is from a read-only volume (drive, CD, etc.), and thus unable to change.</summary>
 		/// <remarks>This is not the read-only NTFS attribute, this is if the file lives on truly read-only media (DVD/CD, ROM, etc.).</remarks>
-		public bool IsFromReadOnlyLocation { get; }
+		public bool IsFromReadOnlyVolume { get; }
 
 		/// <summary>Gets the file name (not the full path) of this instance of a file.</summary>
 		public string FileName
@@ -43,7 +47,10 @@ namespace KFileBackup
 
 		public override int GetHashCode()
 		{
-			return this.FullPath.ToLower().GetHashCode();
+			int hashCode = 17;
+			hashCode = hashCode * 31 + this.FullPath.ToLowerInvariant().GetHashCode();
+			hashCode = hashCode * 31 + this.VolumeName.GetHashCode();
+			return hashCode;
 		}
 
 		public override bool Equals(object obj)
@@ -54,12 +61,15 @@ namespace KFileBackup
 		public bool Equals(FileLocation other)
 		{
 			if (other == null) { return false; }
-			return this.FullPath.Equals(other.FullPath, StringComparison.OrdinalIgnoreCase);
+			return (this.FullPath.ToLowerInvariant() == other.FullPath.ToLowerInvariant() &&
+				this.VolumeName == other.VolumeName);
 		}
 
 		public int CompareTo(FileLocation other)
 		{
-			return string.Compare(this.FullPath, other.FullPath, StringComparison.OrdinalIgnoreCase);
+			int volumeNameComparison = string.Compare(this.VolumeName, other.VolumeName);
+			if (volumeNameComparison != 0) { return volumeNameComparison; }
+			return string.Compare(this.FullPath.ToLowerInvariant(), other.FullPath.ToLowerInvariant());
 		}
 
 		#endregion Methods

@@ -85,7 +85,7 @@ namespace KFileBackup.Tests
 			{
 				FileItemCatalog fileItemCatalog1 = new FileItemCatalog();
 				Assert.AreEqual(0, fileItemCatalog1.Count);
-				Assert.AreEqual(AddOrMergeResult.Added, fileItemCatalog1.AddOrMerge(new FileItem(TestHelper.Hash(134), new FileLocation(@"C:\file1", true))));
+				Assert.AreEqual(AddOrMergeResult.Added, fileItemCatalog1.AddOrMerge(new FileItem(TestHelper.Hash(134), new FileLocation(@"C:\file1", "V1", true))));
 				Assert.AreEqual(1, fileItemCatalog1.Count);
 				Assert.AreEqual(new FileItem(TestHelper.Hash(134)), fileItemCatalog1.Single());
 				Assert.AreEqual(@"C:\file1", fileItemCatalog1.Single().FileLocations.Single().FullPath);
@@ -96,9 +96,28 @@ namespace KFileBackup.Tests
 			}
 			{
 				FileItemCatalog fileItemCatalog1 = new FileItemCatalog();
-				Assert.AreEqual(AddOrMergeResult.Added, fileItemCatalog1.AddOrMerge(new FileItem(TestHelper.Hash(134), new FileLocation(@"C:\file1", true))));
-				Assert.AreEqual(AddOrMergeResult.Added, fileItemCatalog1.AddOrMerge(new FileItem(TestHelper.Hash(456), new FileLocation(@"C:\filezzz", false))));
-				Assert.AreEqual(AddOrMergeResult.Merged, fileItemCatalog1.AddOrMerge(new FileItem(TestHelper.Hash(134), new FileLocation(@"C:\file2", false))));
+				Assert.AreEqual(0, fileItemCatalog1.Count);
+				Assert.AreEqual(AddOrMergeResult.Added, fileItemCatalog1.AddOrMerge(new FileItem(TestHelper.Hash(134), new FileLocation(@"C:\file1", "V1", true))));
+				Assert.AreEqual(AddOrMergeResult.Merged, fileItemCatalog1.AddOrMerge(new FileItem(TestHelper.Hash(134), new FileLocation(@"C:\file1", "V2", true))));
+				Assert.AreEqual(1, fileItemCatalog1.Count);
+				Assert.AreEqual(new FileItem(TestHelper.Hash(134)), fileItemCatalog1.Single());
+				Assert.AreEqual(@"C:\file1", fileItemCatalog1.Single().FileLocations.First().FullPath);
+				Assert.AreEqual(@"V1", fileItemCatalog1.Single().FileLocations.First().VolumeName);
+				Assert.AreEqual(@"C:\file1", fileItemCatalog1.Single().FileLocations.Last().FullPath);
+				Assert.AreEqual(@"V2", fileItemCatalog1.Single().FileLocations.Last().VolumeName);
+				Assert.IsTrue(fileItemCatalog1.TryGetValue(TestHelper.Hash(134), out FileItem fileItem1));
+				Assert.AreEqual(new FileItem(TestHelper.Hash(134)), fileItem1);
+				Assert.AreEqual(@"C:\file1", fileItem1.FileLocations.First().FullPath);
+				Assert.AreEqual(@"V1", fileItem1.FileLocations.First().VolumeName);
+				Assert.AreEqual(@"C:\file1", fileItem1.FileLocations.Last().FullPath);
+				Assert.AreEqual(@"V2", fileItem1.FileLocations.Last().VolumeName);
+				Assert.SequenceEquals(new[] { new FileItem(TestHelper.Hash(134)) }, fileItemCatalog1);
+			}
+			{
+				FileItemCatalog fileItemCatalog1 = new FileItemCatalog();
+				Assert.AreEqual(AddOrMergeResult.Added, fileItemCatalog1.AddOrMerge(new FileItem(TestHelper.Hash(134), new FileLocation(@"C:\file1", "V1", true))));
+				Assert.AreEqual(AddOrMergeResult.Added, fileItemCatalog1.AddOrMerge(new FileItem(TestHelper.Hash(456), new FileLocation(@"C:\filezzz", "V1", false))));
+				Assert.AreEqual(AddOrMergeResult.Merged, fileItemCatalog1.AddOrMerge(new FileItem(TestHelper.Hash(134), new FileLocation(@"C:\file2", "V1", false))));
 				Assert.AreEqual(2, fileItemCatalog1.Count);
 				Assert.AreEqual(new FileItem(TestHelper.Hash(134)), fileItemCatalog1.First());
 				Assert.AreEqual(new FileItem(TestHelper.Hash(456)), fileItemCatalog1.Skip(1).First());
@@ -106,28 +125,28 @@ namespace KFileBackup.Tests
 					Assert.IsTrue(fileItemCatalog1.TryGetValue(TestHelper.Hash(134), out FileItem fileItem1));
 					Assert.AreEqual(2, fileItem1.FileLocations.Count);
 					Assert.AreEqual(@"C:\file1", fileItem1.FileLocations.First().FullPath);
-					Assert.AreEqual(true, fileItem1.FileLocations.First().IsFromReadOnlyLocation);
+					Assert.AreEqual(true, fileItem1.FileLocations.First().IsFromReadOnlyVolume);
 					Assert.AreEqual(@"C:\file2", fileItem1.FileLocations.Skip(1).First().FullPath);
-					Assert.AreEqual(false, fileItem1.FileLocations.Skip(1).First().IsFromReadOnlyLocation);
+					Assert.AreEqual(false, fileItem1.FileLocations.Skip(1).First().IsFromReadOnlyVolume);
 				}
 				{
 					Assert.IsTrue(fileItemCatalog1.TryGetValue(TestHelper.Hash(456), out FileItem fileItem2));
 					Assert.AreEqual(1, fileItem2.FileLocations.Count);
 					Assert.AreEqual(@"C:\filezzz", fileItem2.FileLocations.First().FullPath);
-					Assert.AreEqual(false, fileItem2.FileLocations.First().IsFromReadOnlyLocation);
+					Assert.AreEqual(false, fileItem2.FileLocations.First().IsFromReadOnlyVolume);
 				}
 			}
 			{
 				FileItemCatalog fileItemCatalog1 = new FileItemCatalog();
-				Assert.AreEqual(AddOrMergeResult.Added, fileItemCatalog1.AddOrMerge(new FileItem(TestHelper.Hash(134), new FileLocation(@"C:\file1", true))));
-				Assert.AreEqual(AddOrMergeResult.Same, fileItemCatalog1.AddOrMerge(new FileItem(TestHelper.Hash(134), new FileLocation(@"C:\file1", true))));
+				Assert.AreEqual(AddOrMergeResult.Added, fileItemCatalog1.AddOrMerge(new FileItem(TestHelper.Hash(134), new FileLocation(@"C:\file1", "V1", true))));
+				Assert.AreEqual(AddOrMergeResult.Same, fileItemCatalog1.AddOrMerge(new FileItem(TestHelper.Hash(134), new FileLocation(@"C:\file1", "V1", true))));
 				Assert.AreEqual(1, fileItemCatalog1.Count);
 				Assert.AreEqual(new FileItem(TestHelper.Hash(134)), fileItemCatalog1.First());
 				{
 					Assert.IsTrue(fileItemCatalog1.TryGetValue(TestHelper.Hash(134), out FileItem fileItem1));
 					Assert.AreEqual(1, fileItem1.FileLocations.Count);
 					Assert.AreEqual(@"C:\file1", fileItem1.FileLocations.First().FullPath);
-					Assert.AreEqual(true, fileItem1.FileLocations.First().IsFromReadOnlyLocation);
+					Assert.AreEqual(true, fileItem1.FileLocations.First().IsFromReadOnlyVolume);
 				}
 			}
 		}
@@ -137,10 +156,10 @@ namespace KFileBackup.Tests
 			{
 				FileItemCatalog fileItemCatalog1 = new FileItemCatalog();
 				FileItem fileItem1 = new FileItem(TestHelper.Hash(123));
-				fileItem1.FileLocations.Add(new FileLocation(@"C:\file1", true));
-				fileItem1.FileLocations.Add(new FileLocation(@"C:\file2", false));
+				fileItem1.FileLocations.Add(new FileLocation(@"C:\file1", "V1", true));
+				fileItem1.FileLocations.Add(new FileLocation(@"C:\file2", "V1", false));
 				FileItem fileItem2 = new FileItem(TestHelper.Hash(123));
-				fileItem2.FileLocations.Add(new FileLocation(@"C:\file2", false));
+				fileItem2.FileLocations.Add(new FileLocation(@"C:\file2", "V1", false));
 				Assert.AreEqual(AddOrMergeResult.Added, fileItemCatalog1.AddOrMerge(fileItem1));
 				Assert.AreEqual(AddOrMergeResult.Same, fileItemCatalog1.AddOrMerge(fileItem2));
 				Assert.AreEqual(1, fileItemCatalog1.Count);
@@ -149,11 +168,11 @@ namespace KFileBackup.Tests
 			{
 				FileItemCatalog fileItemCatalog1 = new FileItemCatalog();
 				FileItem fileItem1 = new FileItem(TestHelper.Hash(123));
-				fileItem1.FileLocations.Add(new FileLocation(@"C:\file1", true));
-				fileItem1.FileLocations.Add(new FileLocation(@"C:\file2", false));
+				fileItem1.FileLocations.Add(new FileLocation(@"C:\file1", "V1", true));
+				fileItem1.FileLocations.Add(new FileLocation(@"C:\file2", "V1", false));
 				FileItem fileItem2 = new FileItem(TestHelper.Hash(123));
-				fileItem2.FileLocations.Add(new FileLocation(@"C:\file1", true));
-				fileItem2.FileLocations.Add(new FileLocation(@"C:\file2", false));
+				fileItem2.FileLocations.Add(new FileLocation(@"C:\file1", "V1", true));
+				fileItem2.FileLocations.Add(new FileLocation(@"C:\file2", "V1", false));
 				Assert.AreEqual(AddOrMergeResult.Added, fileItemCatalog1.AddOrMerge(fileItem1));
 				Assert.AreEqual(AddOrMergeResult.Same, fileItemCatalog1.AddOrMerge(fileItem2));
 				Assert.AreEqual(1, fileItemCatalog1.Count);
@@ -162,11 +181,11 @@ namespace KFileBackup.Tests
 			{
 				FileItemCatalog fileItemCatalog1 = new FileItemCatalog();
 				FileItem fileItem1 = new FileItem(TestHelper.Hash(123));
-				fileItem1.FileLocations.Add(new FileLocation(@"C:\file1", true));
-				fileItem1.FileLocations.Add(new FileLocation(@"C:\file2", false));
+				fileItem1.FileLocations.Add(new FileLocation(@"C:\file1", "V1", true));
+				fileItem1.FileLocations.Add(new FileLocation(@"C:\file2", "V1", false));
 				FileItem fileItem2 = new FileItem(TestHelper.Hash(123));
-				fileItem2.FileLocations.Add(new FileLocation(@"C:\file1", true));
-				fileItem2.FileLocations.Add(new FileLocation(@"C:\file3", false));
+				fileItem2.FileLocations.Add(new FileLocation(@"C:\file1", "V1", true));
+				fileItem2.FileLocations.Add(new FileLocation(@"C:\file3", "V1", false));
 				Assert.AreEqual(AddOrMergeResult.Added, fileItemCatalog1.AddOrMerge(fileItem1));
 				Assert.AreEqual(AddOrMergeResult.Merged, fileItemCatalog1.AddOrMerge(fileItem2));
 				Assert.AreEqual(1, fileItemCatalog1.Count);
@@ -175,11 +194,11 @@ namespace KFileBackup.Tests
 			{
 				FileItemCatalog fileItemCatalog1 = new FileItemCatalog();
 				FileItem fileItem1 = new FileItem(TestHelper.Hash(123));
-				fileItem1.FileLocations.Add(new FileLocation(@"C:\file1", true));
-				fileItem1.FileLocations.Add(new FileLocation(@"C:\file2", false));
+				fileItem1.FileLocations.Add(new FileLocation(@"C:\file1", "V1", true));
+				fileItem1.FileLocations.Add(new FileLocation(@"C:\file2", "V1", false));
 				FileItem fileItem2 = new FileItem(TestHelper.Hash(123));
-				fileItem2.FileLocations.Add(new FileLocation(@"C:\file3", true));
-				fileItem2.FileLocations.Add(new FileLocation(@"C:\file4", false));
+				fileItem2.FileLocations.Add(new FileLocation(@"C:\file3", "V1", true));
+				fileItem2.FileLocations.Add(new FileLocation(@"C:\file4", "V1", false));
 				Assert.AreEqual(AddOrMergeResult.Added, fileItemCatalog1.AddOrMerge(fileItem1));
 				Assert.AreEqual(AddOrMergeResult.Merged, fileItemCatalog1.AddOrMerge(fileItem2));
 				Assert.AreEqual(1, fileItemCatalog1.Count);
@@ -193,12 +212,12 @@ namespace KFileBackup.Tests
 			{
 				{
 					FileItemCatalog fileItemCatalog1 = new FileItemCatalog();
-					Assert.AreEqual(AddOrMergeResult.Added, fileItemCatalog1.AddOrMerge(new FileItem(TestHelper.Hash(134), new FileLocation(@"C:\file1", true))));
-					Assert.AreEqual(AddOrMergeResult.Merged, fileItemCatalog1.AddOrMerge(new FileItem(TestHelper.Hash(134), new FileLocation(@"C:\file2", false))));
-					Assert.AreEqual(AddOrMergeResult.Merged, fileItemCatalog1.AddOrMerge(new FileItem(TestHelper.Hash(134), new FileLocation(@"C:\file3", false))));
-					Assert.AreEqual(AddOrMergeResult.Added, fileItemCatalog1.AddOrMerge(new FileItem(TestHelper.Hash(999), new FileLocation(@"C:\blah", false))));
-					Assert.AreEqual(AddOrMergeResult.Added, fileItemCatalog1.AddOrMerge(new FileItem(TestHelper.Hash(456), new FileLocation(@"C:\filezzz", false))));
-					Assert.AreEqual(AddOrMergeResult.Merged, fileItemCatalog1.AddOrMerge(new FileItem(TestHelper.Hash(456), new FileLocation(@"C:\filezzz2", true))));
+					Assert.AreEqual(AddOrMergeResult.Added, fileItemCatalog1.AddOrMerge(new FileItem(TestHelper.Hash(134), new FileLocation(@"C:\file1", "V1", true))));
+					Assert.AreEqual(AddOrMergeResult.Merged, fileItemCatalog1.AddOrMerge(new FileItem(TestHelper.Hash(134), new FileLocation(@"C:\file2", "V1", false))));
+					Assert.AreEqual(AddOrMergeResult.Merged, fileItemCatalog1.AddOrMerge(new FileItem(TestHelper.Hash(134), new FileLocation(@"C:\file3", "V1", false))));
+					Assert.AreEqual(AddOrMergeResult.Added, fileItemCatalog1.AddOrMerge(new FileItem(TestHelper.Hash(999), new FileLocation(@"C:\blah", "V1", false))));
+					Assert.AreEqual(AddOrMergeResult.Added, fileItemCatalog1.AddOrMerge(new FileItem(TestHelper.Hash(456), new FileLocation(@"C:\filezzz", "V1", false))));
+					Assert.AreEqual(AddOrMergeResult.Merged, fileItemCatalog1.AddOrMerge(new FileItem(TestHelper.Hash(456), new FileLocation(@"C:\filezzz2", "V1", true))));
 					fileItemCatalog1.WriteCatalogToFile("unittestcatalog.bkc");
 				}
 				{
@@ -212,25 +231,25 @@ namespace KFileBackup.Tests
 						Assert.IsTrue(fileItemCatalog2.TryGetValue(TestHelper.Hash(134), out FileItem fileItem1));
 						Assert.AreEqual(3, fileItem1.FileLocations.Count);
 						Assert.AreEqual(@"C:\file1", fileItem1.FileLocations.First().FullPath);
-						Assert.AreEqual(true, fileItem1.FileLocations.First().IsFromReadOnlyLocation);
+						Assert.AreEqual(true, fileItem1.FileLocations.First().IsFromReadOnlyVolume);
 						Assert.AreEqual(@"C:\file2", fileItem1.FileLocations.Skip(1).First().FullPath);
-						Assert.AreEqual(false, fileItem1.FileLocations.Skip(1).First().IsFromReadOnlyLocation);
+						Assert.AreEqual(false, fileItem1.FileLocations.Skip(1).First().IsFromReadOnlyVolume);
 						Assert.AreEqual(@"C:\file3", fileItem1.FileLocations.Skip(2).First().FullPath);
-						Assert.AreEqual(false, fileItem1.FileLocations.Skip(1).First().IsFromReadOnlyLocation);
+						Assert.AreEqual(false, fileItem1.FileLocations.Skip(1).First().IsFromReadOnlyVolume);
 					}
 					{
 						Assert.IsTrue(fileItemCatalog2.TryGetValue(TestHelper.Hash(999), out FileItem fileItem2));
 						Assert.AreEqual(1, fileItem2.FileLocations.Count);
 						Assert.AreEqual(@"C:\blah", fileItem2.FileLocations.First().FullPath);
-						Assert.AreEqual(false, fileItem2.FileLocations.First().IsFromReadOnlyLocation);
+						Assert.AreEqual(false, fileItem2.FileLocations.First().IsFromReadOnlyVolume);
 					}
 					{
 						Assert.IsTrue(fileItemCatalog2.TryGetValue(TestHelper.Hash(456), out FileItem fileItem3));
 						Assert.AreEqual(2, fileItem3.FileLocations.Count);
 						Assert.AreEqual(@"C:\filezzz", fileItem3.FileLocations.First().FullPath);
-						Assert.AreEqual(false, fileItem3.FileLocations.First().IsFromReadOnlyLocation);
+						Assert.AreEqual(false, fileItem3.FileLocations.First().IsFromReadOnlyVolume);
 						Assert.AreEqual(@"C:\filezzz2", fileItem3.FileLocations.Skip(1).First().FullPath);
-						Assert.AreEqual(true, fileItem3.FileLocations.Skip(1).First().IsFromReadOnlyLocation);
+						Assert.AreEqual(true, fileItem3.FileLocations.Skip(1).First().IsFromReadOnlyVolume);
 					}
 				}
 			}
@@ -253,7 +272,7 @@ namespace KFileBackup.Tests
 
 				FileItemCatalog fileItemCatalog1 = new FileItemCatalog();
 				{
-					var catalogFileResults1 = fileItemCatalog1.CatalogFilesInDirectory(@"fict_ctid", "*", false, (str) => { });
+					var catalogFileResults1 = fileItemCatalog1.CatalogFilesInDirectory(@"fict_ctid", "*", "V1", false, (str) => { });
 					Assert.AreEqual(3, catalogFileResults1.Count);
 					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1[@"fict_ctid\file1"]);
 					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1[@"fict_ctid\file2"]);
@@ -273,7 +292,7 @@ namespace KFileBackup.Tests
 					}
 				}
 				{
-					var catalogFileResults1 = fileItemCatalog1.CatalogFilesInDirectory(@"fict_ctid", "*", false, (str) => { });
+					var catalogFileResults1 = fileItemCatalog1.CatalogFilesInDirectory(@"fict_ctid", "*", "V1", false, (str) => { });
 					Assert.AreEqual(3, catalogFileResults1.Count);
 					Assert.AreEqual(CatalogFileResult.Same, catalogFileResults1[@"fict_ctid\file1"]);
 					Assert.AreEqual(CatalogFileResult.Same, catalogFileResults1[@"fict_ctid\file2"]);
@@ -312,7 +331,7 @@ namespace KFileBackup.Tests
 
 				FileItemCatalog fileItemCatalog1 = new FileItemCatalog();
 				{
-					var catalogFileResults1 = fileItemCatalog1.CatalogFilesInDirectory(@"fict_ctid", "*", false, (str) => { });
+					var catalogFileResults1 = fileItemCatalog1.CatalogFilesInDirectory(@"fict_ctid", "*", "V1", false, (str) => { });
 					Assert.AreEqual(3, catalogFileResults1.Count);
 					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1[@"fict_ctid\file1"]);
 					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1[@"fict_ctid\file2"]);
@@ -333,7 +352,7 @@ namespace KFileBackup.Tests
 				}
 				File.WriteAllText(@"fict_ctid\file4", "sometext4");
 				{
-					var catalogFileResults1 = fileItemCatalog1.CatalogFilesInDirectory(@"fict_ctid", "*", false, (str) => { });
+					var catalogFileResults1 = fileItemCatalog1.CatalogFilesInDirectory(@"fict_ctid", "*", "V1", false, (str) => { });
 					Assert.AreEqual(4, catalogFileResults1.Count);
 					Assert.AreEqual(CatalogFileResult.Same, catalogFileResults1[@"fict_ctid\file1"]);
 					Assert.AreEqual(CatalogFileResult.Same, catalogFileResults1[@"fict_ctid\file2"]);
@@ -377,7 +396,7 @@ namespace KFileBackup.Tests
 
 				FileItemCatalog fileItemCatalog1 = new FileItemCatalog();
 				{
-					var catalogFileResults1 = fileItemCatalog1.CatalogFilesInDirectory(@"fict_ctid", "*", false, (str) => { });
+					var catalogFileResults1 = fileItemCatalog1.CatalogFilesInDirectory(@"fict_ctid", "*", "V1", false, (str) => { });
 					Assert.AreEqual(3, catalogFileResults1.Count);
 					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1[@"fict_ctid\file1"]);
 					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1[@"fict_ctid\file2"]);
@@ -398,7 +417,7 @@ namespace KFileBackup.Tests
 				}
 				File.WriteAllText(@"fict_ctid\folder1\file4", "sometext2");
 				{
-					var catalogFileResults1 = fileItemCatalog1.CatalogFilesInDirectory(@"fict_ctid", "*", false, (str) => { });
+					var catalogFileResults1 = fileItemCatalog1.CatalogFilesInDirectory(@"fict_ctid", "*", "V1", false, (str) => { });
 					Assert.AreEqual(4, catalogFileResults1.Count);
 					Assert.AreEqual(CatalogFileResult.Same, catalogFileResults1[@"fict_ctid\file1"]);
 					Assert.AreEqual(CatalogFileResult.Same, catalogFileResults1[@"fict_ctid\file2"]);
@@ -439,7 +458,7 @@ namespace KFileBackup.Tests
 
 				FileItemCatalog fileItemCatalog1 = new FileItemCatalog();
 				{
-					var catalogFileResults1 = fileItemCatalog1.CatalogFilesInDirectory(@"fict_ctid", "*", false, (str) => { });
+					var catalogFileResults1 = fileItemCatalog1.CatalogFilesInDirectory(@"fict_ctid", "*", "V1", false, (str) => { });
 					Assert.AreEqual(3, catalogFileResults1.Count);
 					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1[@"fict_ctid\file1"]);
 					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1[@"fict_ctid\file2"]);
@@ -485,7 +504,7 @@ namespace KFileBackup.Tests
 
 				FileItemCatalog fileItemCatalog1 = new FileItemCatalog();
 				{
-					var catalogFileResults1 = fileItemCatalog1.CatalogFilesInDirectory(@"fict_ctid", "*", false, (str) => { });
+					var catalogFileResults1 = fileItemCatalog1.CatalogFilesInDirectory(@"fict_ctid", "*", "V1", false, (str) => { });
 					Assert.AreEqual(3, catalogFileResults1.Count);
 					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1[@"fict_ctid\file1"]);
 					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1[@"fict_ctid\file2"]);
@@ -533,7 +552,7 @@ namespace KFileBackup.Tests
 
 				FileItemCatalog fileItemCatalog1 = new FileItemCatalog();
 				{
-					var catalogFileResults1 = fileItemCatalog1.CatalogFilesInDirectory(@"fict_ctid", "*", false, (str) => { });
+					var catalogFileResults1 = fileItemCatalog1.CatalogFilesInDirectory(@"fict_ctid", "*", "V1", false, (str) => { });
 					Assert.AreEqual(3, catalogFileResults1.Count);
 					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1[@"fict_ctid\file1"]);
 					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1[@"fict_ctid\file2"]);
@@ -581,7 +600,7 @@ namespace KFileBackup.Tests
 
 				FileItemCatalog fileItemCatalog1 = new FileItemCatalog();
 				{
-					var catalogFileResults1 = fileItemCatalog1.CatalogFilesInDirectory(@"fict_ctid", "*", false, (str) => { });
+					var catalogFileResults1 = fileItemCatalog1.CatalogFilesInDirectory(@"fict_ctid", "*", "V1", false, (str) => { });
 					Assert.AreEqual(3, catalogFileResults1.Count);
 					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1[@"fict_ctid\file1"]);
 					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1[@"fict_ctid\file2"]);
@@ -628,7 +647,7 @@ namespace KFileBackup.Tests
 
 				FileItemCatalog fileItemCatalog1 = new FileItemCatalog();
 				{
-					var catalogFileResults1 = fileItemCatalog1.CatalogFilesInDirectory(@"fict_ctid", "*", false, (str) => { });
+					var catalogFileResults1 = fileItemCatalog1.CatalogFilesInDirectory(@"fict_ctid", "*", "V1", false, (str) => { });
 					Assert.AreEqual(3, catalogFileResults1.Count);
 					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1[@"fict_ctid\file1"]);
 					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1[@"fict_ctid\file2"]);

@@ -61,9 +61,9 @@ namespace KFileBackup
 		/// <summary>
 		/// Creates a new <see cref="FileItem"/> based on the given path on disk.
 		/// </summary>
-		public static FileItem CreateFromPath(string path, bool isFromReadOnlyLocation)
+		public static FileItem CreateFromPath(string path, string volumeName, bool isFromReadOnlyVolume)
 		{
-			return new FileItem(Hash.GetFileHash(path), new FileLocation(path, isFromReadOnlyLocation));
+			return new FileItem(Hash.GetFileHash(path), new FileLocation(path, volumeName, isFromReadOnlyVolume));
 		}
 
 		#endregion Helpers
