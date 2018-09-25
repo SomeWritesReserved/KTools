@@ -11,8 +11,8 @@ namespace KFileBackup
 	{
 		#region Fields
 
-		private const string catalogFileName = "files.bkc";
-		private static string logFileName = "log.log";
+		private const string catalogFileName = "Catalog.bkc";
+		private static string logFileName = "Output.log";
 
 		#endregion Fields
 
@@ -29,7 +29,7 @@ namespace KFileBackup
 				}
 				else if (args.FirstOrDefault() == "catalog")
 				{
-					Program.logFileName = "log-Catalog.log";
+					Program.logFileName = "Catalog.log";
 
 					bool isFromReadOnlyVolume = args.Contains("--readonly");
 					string directory = args.Last();
@@ -150,7 +150,7 @@ namespace KFileBackup
 					{
 						foreach (FileLocation fileLocation in fileItem.FileLocations)
 						{
-							Program.log(" {0}{1}", fileLocation.IsFromReadOnlyVolume ? "*" : " ", fileLocation.FullPath);
+							Program.log(" {0}{1}\t{2}", fileLocation.IsFromReadOnlyVolume ? "*" : " ", fileLocation.VolumeName, fileLocation.FullPath);
 						}
 					}
 				}
@@ -163,12 +163,13 @@ namespace KFileBackup
 					Program.log("Reading catalog from saved file...");
 					fileItemCatalog.ReadCatalogFromFile(Program.catalogFileName);
 
+					Program.log($"There are {fileItemCatalog.Count} unique file items cataloged.");
 					foreach (FileItem fileItem in fileItemCatalog.OrderBy((fi) => fi.FileLocations.First()))
 					{
 						Program.log($"{fileItem.Hash}:");
 						foreach (FileLocation fileLocation in fileItem.FileLocations.OrderBy((fl) => fl))
 						{
-							Program.log(" {0}{1}", fileLocation.IsFromReadOnlyVolume ? "*" : " ", fileLocation.FullPath);
+							Program.log(" {0}{1}\t{2}", fileLocation.IsFromReadOnlyVolume ? "*" : " ", fileLocation.VolumeName, fileLocation.FullPath);
 							if (!showAllFileLocations) { break; }
 						}
 					}
