@@ -114,7 +114,7 @@ namespace KFileBackup
 					}
 
 					FileItemCatalog fileItemCatalog = new FileItemCatalog();
-					Program.log($"Checking base directory {baseDirectory}...");
+					Program.log($"Cataloging base directory {baseDirectory}...");
 					fileItemCatalog.CatalogFilesInDirectory(baseDirectory, "*", "Base directory", false, (str) => { });
 
 					Program.log($"Comparing compare directory {compareDirectory}...");
@@ -171,6 +171,57 @@ namespace KFileBackup
 						{
 							Program.log(" {0}{1}\t{2}", fileLocation.IsFromReadOnlyVolume ? "*" : " ", fileLocation.VolumeName, fileLocation.FullPath);
 							if (!showAllFileLocations) { break; }
+						}
+					}
+				}
+				else if (args.FirstOrDefault() == "find")
+				{
+					string fileToFind = args.Last();
+					if (!File.Exists(Program.catalogFileName)) { throw new ArgumentException("No saved catalog exists, nothing to list. Run 'catalog' command."); }
+
+					FileItemCatalog fileItemCatalog = new FileItemCatalog();
+					Program.log("Reading catalog from saved file...");
+					fileItemCatalog.ReadCatalogFromFile(Program.catalogFileName);
+
+					var matchedFileItems = fileItemCatalog.Where((fi) => fi.FileLocations.Any((fl) => fl.FullPath.IndexOf(fileToFind, StringComparison.OrdinalIgnoreCase) >= 0));
+					Program.log($"Found {matchedFileItems.Count()} matching file items.");
+					foreach (FileItem fileItem in matchedFileItems)
+					{
+						Program.log($"{fileItem.Hash}:");
+						foreach (FileLocation fileLocation in fileItem.FileLocations.OrderBy((fl) => fl))
+						{
+							Program.log(" {0}{1}\t{2}", fileLocation.IsFromReadOnlyVolume ? "*" : " ", fileLocation.VolumeName, fileLocation.FullPath);
+						}
+					}
+				}
+				else if (args.FirstOrDefault() == "gc")
+				{
+				}
+				else if (args.FirstOrDefault() == "selfcompare")
+				{
+					bool shouldDeleteDuplicates = args.Contains("--delete");
+					string directory = args.Last();
+					if (!Path.IsPathRooted(directory)) { throw new ArgumentException("Directory must be a full, rooted path."); }
+					if (!Directory.Exists(directory)) { throw new ArgumentException("Directory does not exist."); }
+
+					if (shouldDeleteDuplicates)
+					{
+						Program.log("Really delete files duplicated in directory?");
+						if (Console.ReadKey().Key != ConsoleKey.Y) { throw new OperationCanceledException("User cancelled the --delete option."); }
+						Program.log("Will delete all files duplicated in directory");
+					}
+
+					FileItemCatalog fileItemCatalog = new FileItemCatalog();
+					Program.log($"Cataloging base directory {directory}...");
+					Dictionary<string, CatalogFileResult> catalogFileResults = fileItemCatalog.CatalogFilesInDirectory(directory, "*", "Self directory", false, Program.log);
+					if (shouldDeleteDuplicates)
+					{
+						Program.log("Deleting files duplicated in the directory...");
+						foreach (string file in catalogFileResults.Where((kvp) => kvp.Value == CatalogFileResult.Merged)
+							.Select((kvp) => kvp.Key))
+						{
+							Program.log(file);
+							File.Delete(file);
 						}
 					}
 				}
