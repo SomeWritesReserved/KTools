@@ -22,9 +22,9 @@ namespace KFileBackup
 		{
 			try
 			{
+				Program.log("Running args: {0}", string.Join(" ", args.Select((arg) => $"\"{arg}\"")));
 				if (args.FirstOrDefault() == "test")
 				{
-					Program.log("Running tests...");
 					Program.runTests();
 				}
 				else if (args.FirstOrDefault() == "catalog")
