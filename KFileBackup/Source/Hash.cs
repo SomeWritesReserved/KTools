@@ -91,7 +91,18 @@ namespace KFileBackup
 		/// </summary>
 		public static Hash GetFileHash(string file)
 		{
-			using (BufferedStream stream = new BufferedStream(File.OpenRead(file), 1200000))
+			using (FileStream fileStream = File.OpenRead(file))
+			{
+				return Hash.GetFileHash(fileStream);
+			}
+		}
+
+		/// <summary>
+		/// Gets the hash of a given file's contents.
+		/// </summary>
+		public static Hash GetFileHash(FileStream fileStream)
+		{
+			using (BufferedStream stream = new BufferedStream(fileStream, 1200000))
 			{
 				using (SHA256Managed sha = new SHA256Managed())
 				{

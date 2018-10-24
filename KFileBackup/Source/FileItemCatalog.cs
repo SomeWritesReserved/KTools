@@ -108,6 +108,7 @@ namespace KFileBackup
 
 			log.Invoke("Getting file hashes...");
 			int processedFileCount = 0;
+			long newFilesTotalLengthInBytes = 0;
 			Dictionary<string, CheckFileResult> checkFileResults = new Dictionary<string, CheckFileResult>(StringComparer.OrdinalIgnoreCase);
 			foreach (string file in allFiles)
 			{
@@ -119,8 +120,9 @@ namespace KFileBackup
 					checkFileResult = this.TryGetValue(fileItem.Hash, out _) ? CheckFileResult.Exists : CheckFileResult.New;
 					if (checkFileResult == CheckFileResult.New || shouldLogAll)
 					{
-						log.Invoke($"{checkFileResult}\t{fileItem.Hash}\t{file}");
+						log.Invoke($"{checkFileResult}\t{fileItem.Hash}\t{file}\t({fileItem.FileSize.Value})");
 					}
+					if (checkFileResult == CheckFileResult.New) { newFilesTotalLengthInBytes += fileItem.FileSize.Value; }
 				}
 				catch (IOException ioException)
 				{
@@ -132,7 +134,7 @@ namespace KFileBackup
 				processedFileCount++;
 				if ((processedFileCount % 20) == 0) { log.Invoke($"{processedFileCount / (double)allFiles.Length:0.0%} - {processedFileCount} of {allFiles.Length} files..."); }
 			}
-			log.Invoke($"Checked {allFiles.Length} files ({checkFileResults.Count((kvp) => kvp.Value == CheckFileResult.Exists)} exist, {checkFileResults.Count((kvp) => kvp.Value == CheckFileResult.New)} new, {checkFileResults.Count((kvp) => kvp.Value == CheckFileResult.Skipped)} skipped).");
+			log.Invoke($"Checked {allFiles.Length} files ({checkFileResults.Count((kvp) => kvp.Value == CheckFileResult.Exists)} exist, {checkFileResults.Count((kvp) => kvp.Value == CheckFileResult.New)} new ({newFilesTotalLengthInBytes}), {checkFileResults.Count((kvp) => kvp.Value == CheckFileResult.Skipped)} skipped).");
 			return checkFileResults;
 		}
 

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 
@@ -52,6 +53,46 @@ namespace KFileBackup.Tests
 			{
 				FileItem fileItem1 = new FileItem(TestHelper.Hash(123));
 				FileItem fileItem2 = new FileItem(TestHelper.Hash(456), new FileLocation("ffff", "V1", true));
+				Assert.AreNotEqual(fileItem1, fileItem2);
+				Assert.AreNotEqual(fileItem1.GetHashCode(), fileItem2.GetHashCode());
+			}
+		}
+
+		public static void EqualsWithFileSizes()
+		{
+			{
+				FileItem fileItem1 = new FileItem(new Hash(), 1, new FileLocation("a", "b", false));
+				FileItem fileItem2 = new FileItem(new Hash());
+				Assert.AreEqual(fileItem1, fileItem2);
+				Assert.AreEqual(fileItem1.GetHashCode(), fileItem2.GetHashCode());
+			}
+			{
+				FileItem fileItem1 = new FileItem(new Hash());
+				FileItem fileItem2 = new FileItem(new Hash(), 1, new FileLocation("a", "b", false));
+				Assert.AreEqual(fileItem1, fileItem2);
+				Assert.AreEqual(fileItem1.GetHashCode(), fileItem2.GetHashCode());
+			}
+			{
+				FileItem fileItem1 = new FileItem(new Hash(), 1, new FileLocation("a", "b", false));
+				FileItem fileItem2 = new FileItem(new Hash());
+				Assert.AreEqual(fileItem1, fileItem2);
+				Assert.AreEqual(fileItem1.GetHashCode(), fileItem2.GetHashCode());
+			}
+			{
+				FileItem fileItem1 = new FileItem(TestHelper.Hash(123));
+				FileItem fileItem2 = new FileItem(TestHelper.Hash(123), 1, new FileLocation("a", "b", false));
+				Assert.AreEqual(fileItem1, fileItem2);
+				Assert.AreEqual(fileItem1.GetHashCode(), fileItem2.GetHashCode());
+			}
+			{
+				FileItem fileItem1 = new FileItem(TestHelper.Hash(123), 2, new FileLocation("a", "b", false));
+				FileItem fileItem2 = new FileItem(TestHelper.Hash(123), 1, new FileLocation("a", "b", false));
+				Assert.AreNotEqual(fileItem1, fileItem2);
+				Assert.AreEqual(fileItem1.GetHashCode(), fileItem2.GetHashCode());
+			}
+			{
+				FileItem fileItem1 = new FileItem(TestHelper.Hash(123), 15, new FileLocation("a", "b", false));
+				FileItem fileItem2 = new FileItem(TestHelper.Hash(456), 15, new FileLocation("a", "b", false));
 				Assert.AreNotEqual(fileItem1, fileItem2);
 				Assert.AreNotEqual(fileItem1.GetHashCode(), fileItem2.GetHashCode());
 			}
@@ -119,6 +160,39 @@ namespace KFileBackup.Tests
 				Assert.IsFalse(fileItem1.FileLocations.Contains(new FileLocation(@"C:\Windows\System32\user32.dll", "V2", false)));
 				Assert.AreEqual(@"C:\Windows\System32\user32.dll", fileItem1.FileLocations.Single().FullPath);
 				Assert.AreEqual(@"V1", fileItem1.FileLocations.Single().VolumeName);
+			}
+			{
+				try
+				{
+					Assert.IsFalse(Directory.Exists(@"fit_cfp"));
+					Directory.CreateDirectory(@"fit_cfp");
+					Directory.CreateDirectory(@"fit_cfp\folder1");
+					File.WriteAllText(@"fit_cfp\file1", "file of length16", Encoding.ASCII);
+					File.WriteAllText(@"fit_cfp\file2", "only5", Encoding.ASCII);
+					File.WriteAllText(@"fit_cfp\folder1\file3", "thisisalongone with at least or actually exactly50", Encoding.ASCII);
+
+					FileItem fileItem1 = FileItem.CreateFromPath(@"fit_cfp\file1", "C:", false);
+					Assert.IsTrue(fileItem1.FileSize.HasValue);
+					Assert.AreEqual(16, fileItem1.FileSize.Value);
+					Assert.AreEqual(1, fileItem1.FileLocations.Count);
+					Assert.IsTrue(fileItem1.FileLocations.Contains(new FileLocation(@"fit_cfp\file1", "C:", false)));
+
+					FileItem fileItem2 = FileItem.CreateFromPath(@"fit_cfp\file2", "C:", false);
+					Assert.IsTrue(fileItem2.FileSize.HasValue);
+					Assert.AreEqual(5, fileItem2.FileSize.Value);
+					Assert.AreEqual(1, fileItem2.FileLocations.Count);
+					Assert.IsTrue(fileItem2.FileLocations.Contains(new FileLocation(@"fit_cfp\file2", "C:", false)));
+
+					FileItem fileItem3 = FileItem.CreateFromPath(@"fit_cfp\folder1\file3", "C:", false);
+					Assert.IsTrue(fileItem3.FileSize.HasValue);
+					Assert.AreEqual(50, fileItem3.FileSize.Value);
+					Assert.AreEqual(1, fileItem3.FileLocations.Count);
+					Assert.IsTrue(fileItem3.FileLocations.Contains(new FileLocation(@"fit_cfp\folder1\file3", "C:", false)));
+				}
+				finally
+				{
+					Directory.Delete(@"fit_cfp", true);
+				}
 			}
 		}
 
