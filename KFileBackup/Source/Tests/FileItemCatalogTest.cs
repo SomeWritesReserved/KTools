@@ -274,9 +274,9 @@ namespace KFileBackup.Tests
 				{
 					var catalogFileResults1 = fileItemCatalog1.CatalogFilesInDirectory(@"fict_ctid", "*", "V1", false, (str) => { });
 					Assert.AreEqual(3, catalogFileResults1.Count);
-					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1[@"fict_ctid\file1"]);
-					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1[@"fict_ctid\file2"]);
-					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1[@"fict_ctid\folder1\file3"]);
+					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1.Single((res) => res.File == @"fict_ctid\file1").Result);
+					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1.Single((res) => res.File == @"fict_ctid\file2").Result);
+					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1.Single((res) => res.File == @"fict_ctid\folder1\file3").Result);
 					Assert.AreEqual(3, fileItemCatalog1.Count);
 					{
 						Assert.AreEqual(1, fileItemCatalog1.First().FileLocations.Count);
@@ -294,9 +294,9 @@ namespace KFileBackup.Tests
 				{
 					var catalogFileResults1 = fileItemCatalog1.CatalogFilesInDirectory(@"fict_ctid", "*", "V1", false, (str) => { });
 					Assert.AreEqual(3, catalogFileResults1.Count);
-					Assert.AreEqual(CatalogFileResult.Same, catalogFileResults1[@"fict_ctid\file1"]);
-					Assert.AreEqual(CatalogFileResult.Same, catalogFileResults1[@"fict_ctid\file2"]);
-					Assert.AreEqual(CatalogFileResult.Same, catalogFileResults1[@"fict_ctid\folder1\file3"]);
+					Assert.AreEqual(CatalogFileResult.Same, catalogFileResults1.Single((res) => res.File == @"fict_ctid\file1").Result);
+					Assert.AreEqual(CatalogFileResult.Same, catalogFileResults1.Single((res) => res.File == @"fict_ctid\file2").Result);
+					Assert.AreEqual(CatalogFileResult.Same, catalogFileResults1.Single((res) => res.File == @"fict_ctid\folder1\file3").Result);
 					Assert.AreEqual(3, fileItemCatalog1.Count);
 					{
 						Assert.AreEqual(1, fileItemCatalog1.First().FileLocations.Count);
@@ -333,9 +333,9 @@ namespace KFileBackup.Tests
 				{
 					var catalogFileResults1 = fileItemCatalog1.CatalogFilesInDirectory(@"fict_ctid", "*", "V1", false, (str) => { });
 					Assert.AreEqual(3, catalogFileResults1.Count);
-					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1[@"fict_ctid\file1"]);
-					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1[@"fict_ctid\file2"]);
-					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1[@"fict_ctid\folder1\file3"]);
+					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1.Single((res) => res.File == @"fict_ctid\file1").Result);
+					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1.Single((res) => res.File == @"fict_ctid\file2").Result);
+					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1.Single((res) => res.File == @"fict_ctid\folder1\file3").Result);
 					Assert.AreEqual(3, fileItemCatalog1.Count);
 					{
 						Assert.AreEqual(1, fileItemCatalog1.First().FileLocations.Count);
@@ -354,10 +354,10 @@ namespace KFileBackup.Tests
 				{
 					var catalogFileResults1 = fileItemCatalog1.CatalogFilesInDirectory(@"fict_ctid", "*", "V1", false, (str) => { });
 					Assert.AreEqual(4, catalogFileResults1.Count);
-					Assert.AreEqual(CatalogFileResult.Same, catalogFileResults1[@"fict_ctid\file1"]);
-					Assert.AreEqual(CatalogFileResult.Same, catalogFileResults1[@"fict_ctid\file2"]);
-					Assert.AreEqual(CatalogFileResult.Same, catalogFileResults1[@"fict_ctid\folder1\file3"]);
-					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1[@"fict_ctid\file4"]);
+					Assert.AreEqual(CatalogFileResult.Same, catalogFileResults1.Single((res) => res.File == @"fict_ctid\file1").Result);
+					Assert.AreEqual(CatalogFileResult.Same, catalogFileResults1.Single((res) => res.File == @"fict_ctid\file2").Result);
+					Assert.AreEqual(CatalogFileResult.Same, catalogFileResults1.Single((res) => res.File == @"fict_ctid\folder1\file3").Result);
+					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1.Single((res) => res.File == @"fict_ctid\file4").Result);
 					Assert.AreEqual(4, fileItemCatalog1.Count);
 					{
 						Assert.AreEqual(1, fileItemCatalog1.First().FileLocations.Count);
@@ -398,9 +398,9 @@ namespace KFileBackup.Tests
 				{
 					var catalogFileResults1 = fileItemCatalog1.CatalogFilesInDirectory(@"fict_ctid", "*", "V1", false, (str) => { });
 					Assert.AreEqual(3, catalogFileResults1.Count);
-					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1[@"fict_ctid\file1"]);
-					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1[@"fict_ctid\file2"]);
-					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1[@"fict_ctid\folder1\file3"]);
+					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1.Single((res) => res.File == @"fict_ctid\file1").Result);
+					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1.Single((res) => res.File == @"fict_ctid\file2").Result);
+					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1.Single((res) => res.File == @"fict_ctid\folder1\file3").Result);
 					Assert.AreEqual(3, fileItemCatalog1.Count);
 					{
 						Assert.AreEqual(1, fileItemCatalog1.First().FileLocations.Count);
@@ -419,10 +419,10 @@ namespace KFileBackup.Tests
 				{
 					var catalogFileResults1 = fileItemCatalog1.CatalogFilesInDirectory(@"fict_ctid", "*", "V1", false, (str) => { });
 					Assert.AreEqual(4, catalogFileResults1.Count);
-					Assert.AreEqual(CatalogFileResult.Same, catalogFileResults1[@"fict_ctid\file1"]);
-					Assert.AreEqual(CatalogFileResult.Same, catalogFileResults1[@"fict_ctid\file2"]);
-					Assert.AreEqual(CatalogFileResult.Same, catalogFileResults1[@"fict_ctid\folder1\file3"]);
-					Assert.AreEqual(CatalogFileResult.Merged, catalogFileResults1[@"fict_ctid\folder1\file4"]);
+					Assert.AreEqual(CatalogFileResult.Same, catalogFileResults1.Single((res) => res.File == @"fict_ctid\file1").Result);
+					Assert.AreEqual(CatalogFileResult.Same, catalogFileResults1.Single((res) => res.File == @"fict_ctid\file2").Result);
+					Assert.AreEqual(CatalogFileResult.Same, catalogFileResults1.Single((res) => res.File == @"fict_ctid\folder1\file3").Result);
+					Assert.AreEqual(CatalogFileResult.Merged, catalogFileResults1.Single((res) => res.File == @"fict_ctid\folder1\file4").Result);
 					Assert.AreEqual(3, fileItemCatalog1.Count);
 					{
 						Assert.AreEqual(1, fileItemCatalog1.First().FileLocations.Count);
@@ -460,9 +460,9 @@ namespace KFileBackup.Tests
 				{
 					var catalogFileResults1 = fileItemCatalog1.CatalogFilesInDirectory(@"fict_ctid", "*", "V1", false, (str) => { });
 					Assert.AreEqual(3, catalogFileResults1.Count);
-					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1[@"fict_ctid\file1"]);
-					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1[@"fict_ctid\file2"]);
-					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1[@"fict_ctid\folder1\file3"]);
+					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1.Single((res) => res.File == @"fict_ctid\file1").Result);
+					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1.Single((res) => res.File == @"fict_ctid\file2").Result);
+					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1.Single((res) => res.File == @"fict_ctid\folder1\file3").Result);
 					Assert.AreEqual(3, fileItemCatalog1.Count);
 					{
 						Assert.AreEqual(1, fileItemCatalog1.First().FileLocations.Count);
@@ -480,9 +480,9 @@ namespace KFileBackup.Tests
 				{
 					var checkFileResults1 = fileItemCatalog1.CheckFilesInDirectory(@"fict_ctid", "*", false, (str) => { });
 					Assert.AreEqual(3, checkFileResults1.Count);
-					Assert.AreEqual(CheckFileResult.Exists, checkFileResults1[@"fict_ctid\file1"]);
-					Assert.AreEqual(CheckFileResult.Exists, checkFileResults1[@"fict_ctid\file2"]);
-					Assert.AreEqual(CheckFileResult.Exists, checkFileResults1[@"fict_ctid\folder1\file3"]);
+					Assert.AreEqual(CheckFileResult.Exists, checkFileResults1.Single((res) => res.File == @"fict_ctid\file1").Result);
+					Assert.AreEqual(CheckFileResult.Exists, checkFileResults1.Single((res) => res.File == @"fict_ctid\file2").Result);
+					Assert.AreEqual(CheckFileResult.Exists, checkFileResults1.Single((res) => res.File == @"fict_ctid\folder1\file3").Result);
 				}
 			}
 			finally
@@ -506,9 +506,9 @@ namespace KFileBackup.Tests
 				{
 					var catalogFileResults1 = fileItemCatalog1.CatalogFilesInDirectory(@"fict_ctid", "*", "V1", false, (str) => { });
 					Assert.AreEqual(3, catalogFileResults1.Count);
-					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1[@"fict_ctid\file1"]);
-					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1[@"fict_ctid\file2"]);
-					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1[@"fict_ctid\folder1\file3"]);
+					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1.Single((res) => res.File == @"fict_ctid\file1").Result);
+					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1.Single((res) => res.File == @"fict_ctid\file2").Result);
+					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1.Single((res) => res.File == @"fict_ctid\folder1\file3").Result);
 					Assert.AreEqual(3, fileItemCatalog1.Count);
 					{
 						Assert.AreEqual(1, fileItemCatalog1.First().FileLocations.Count);
@@ -527,10 +527,10 @@ namespace KFileBackup.Tests
 					File.WriteAllText(@"fict_ctid\folder1\file4", "sometext2");
 					var checkFileResults1 = fileItemCatalog1.CheckFilesInDirectory(@"fict_ctid", "*", false, (str) => { });
 					Assert.AreEqual(4, checkFileResults1.Count);
-					Assert.AreEqual(CheckFileResult.Exists, checkFileResults1[@"fict_ctid\file1"]);
-					Assert.AreEqual(CheckFileResult.Exists, checkFileResults1[@"fict_ctid\file2"]);
-					Assert.AreEqual(CheckFileResult.Exists, checkFileResults1[@"fict_ctid\folder1\file3"]);
-					Assert.AreEqual(CheckFileResult.Exists, checkFileResults1[@"fict_ctid\folder1\file4"]);
+					Assert.AreEqual(CheckFileResult.Exists, checkFileResults1.Single((res) => res.File == @"fict_ctid\file1").Result);
+					Assert.AreEqual(CheckFileResult.Exists, checkFileResults1.Single((res) => res.File == @"fict_ctid\file2").Result);
+					Assert.AreEqual(CheckFileResult.Exists, checkFileResults1.Single((res) => res.File == @"fict_ctid\folder1\file3").Result);
+					Assert.AreEqual(CheckFileResult.Exists, checkFileResults1.Single((res) => res.File == @"fict_ctid\folder1\file4").Result);
 				}
 			}
 			finally
@@ -554,9 +554,9 @@ namespace KFileBackup.Tests
 				{
 					var catalogFileResults1 = fileItemCatalog1.CatalogFilesInDirectory(@"fict_ctid", "*", "V1", false, (str) => { });
 					Assert.AreEqual(3, catalogFileResults1.Count);
-					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1[@"fict_ctid\file1"]);
-					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1[@"fict_ctid\file2"]);
-					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1[@"fict_ctid\folder1\file3"]);
+					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1.Single((res) => res.File == @"fict_ctid\file1").Result);
+					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1.Single((res) => res.File == @"fict_ctid\file2").Result);
+					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1.Single((res) => res.File == @"fict_ctid\folder1\file3").Result);
 					Assert.AreEqual(3, fileItemCatalog1.Count);
 					{
 						Assert.AreEqual(1, fileItemCatalog1.First().FileLocations.Count);
@@ -575,10 +575,10 @@ namespace KFileBackup.Tests
 					File.WriteAllText(@"fict_ctid\folder1\file4", "sometext4");
 					var checkFileResults1 = fileItemCatalog1.CheckFilesInDirectory(@"fict_ctid", "*", false, (str) => { });
 					Assert.AreEqual(4, checkFileResults1.Count);
-					Assert.AreEqual(CheckFileResult.Exists, checkFileResults1[@"fict_ctid\file1"]);
-					Assert.AreEqual(CheckFileResult.Exists, checkFileResults1[@"fict_ctid\file2"]);
-					Assert.AreEqual(CheckFileResult.Exists, checkFileResults1[@"fict_ctid\folder1\file3"]);
-					Assert.AreEqual(CheckFileResult.New, checkFileResults1[@"fict_ctid\folder1\file4"]);
+					Assert.AreEqual(CheckFileResult.Exists, checkFileResults1.Single((res) => res.File == @"fict_ctid\file1").Result);
+					Assert.AreEqual(CheckFileResult.Exists, checkFileResults1.Single((res) => res.File == @"fict_ctid\file2").Result);
+					Assert.AreEqual(CheckFileResult.Exists, checkFileResults1.Single((res) => res.File == @"fict_ctid\folder1\file3").Result);
+					Assert.AreEqual(CheckFileResult.New, checkFileResults1.Single((res) => res.File == @"fict_ctid\folder1\file4").Result);
 				}
 			}
 			finally
@@ -602,9 +602,9 @@ namespace KFileBackup.Tests
 				{
 					var catalogFileResults1 = fileItemCatalog1.CatalogFilesInDirectory(@"fict_ctid", "*", "V1", false, (str) => { });
 					Assert.AreEqual(3, catalogFileResults1.Count);
-					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1[@"fict_ctid\file1"]);
-					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1[@"fict_ctid\file2"]);
-					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1[@"fict_ctid\folder1\file3"]);
+					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1.Single((res) => res.File == @"fict_ctid\file1").Result);
+					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1.Single((res) => res.File == @"fict_ctid\file2").Result);
+					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1.Single((res) => res.File == @"fict_ctid\folder1\file3").Result);
 					Assert.AreEqual(3, fileItemCatalog1.Count);
 					{
 						Assert.AreEqual(1, fileItemCatalog1.First().FileLocations.Count);
@@ -623,9 +623,9 @@ namespace KFileBackup.Tests
 					File.WriteAllText(@"fict_ctid\file2", "sometextXzzz");
 					var checkFileResults1 = fileItemCatalog1.CheckFilesInDirectory(@"fict_ctid", "*", false, (str) => { });
 					Assert.AreEqual(3, checkFileResults1.Count);
-					Assert.AreEqual(CheckFileResult.Exists, checkFileResults1[@"fict_ctid\file1"]);
-					Assert.AreEqual(CheckFileResult.New, checkFileResults1[@"fict_ctid\file2"]);
-					Assert.AreEqual(CheckFileResult.Exists, checkFileResults1[@"fict_ctid\folder1\file3"]);
+					Assert.AreEqual(CheckFileResult.Exists, checkFileResults1.Single((res) => res.File == @"fict_ctid\file1").Result);
+					Assert.AreEqual(CheckFileResult.New, checkFileResults1.Single((res) => res.File == @"fict_ctid\file2").Result);
+					Assert.AreEqual(CheckFileResult.Exists, checkFileResults1.Single((res) => res.File == @"fict_ctid\folder1\file3").Result);
 				}
 			}
 			finally
@@ -649,9 +649,9 @@ namespace KFileBackup.Tests
 				{
 					var catalogFileResults1 = fileItemCatalog1.CatalogFilesInDirectory(@"fict_ctid", "*", "V1", false, (str) => { });
 					Assert.AreEqual(3, catalogFileResults1.Count);
-					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1[@"fict_ctid\file1"]);
-					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1[@"fict_ctid\file2"]);
-					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1[@"fict_ctid\folder1\file3"]);
+					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1.Single((res) => res.File == @"fict_ctid\file1").Result);
+					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1.Single((res) => res.File == @"fict_ctid\file2").Result);
+					Assert.AreEqual(CatalogFileResult.Added, catalogFileResults1.Single((res) => res.File == @"fict_ctid\folder1\file3").Result);
 					Assert.AreEqual(3, fileItemCatalog1.Count);
 					{
 						Assert.AreEqual(1, fileItemCatalog1.First().FileLocations.Count);
@@ -670,9 +670,9 @@ namespace KFileBackup.Tests
 					File.WriteAllText(@"fict_ctid\file2", "sometext3");
 					var checkFileResults1 = fileItemCatalog1.CheckFilesInDirectory(@"fict_ctid", "*", false, (str) => { });
 					Assert.AreEqual(3, checkFileResults1.Count);
-					Assert.AreEqual(CheckFileResult.Exists, checkFileResults1[@"fict_ctid\file1"]);
-					Assert.AreEqual(CheckFileResult.Exists, checkFileResults1[@"fict_ctid\file2"]);
-					Assert.AreEqual(CheckFileResult.Exists, checkFileResults1[@"fict_ctid\folder1\file3"]);
+					Assert.AreEqual(CheckFileResult.Exists, checkFileResults1.Single((res) => res.File == @"fict_ctid\file1").Result);
+					Assert.AreEqual(CheckFileResult.Exists, checkFileResults1.Single((res) => res.File == @"fict_ctid\file2").Result);
+					Assert.AreEqual(CheckFileResult.Exists, checkFileResults1.Single((res) => res.File == @"fict_ctid\folder1\file3").Result);
 				}
 			}
 			finally

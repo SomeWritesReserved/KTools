@@ -63,7 +63,7 @@ namespace KFileBackup
 		/// <summary>
 		/// Finds all files in a directory and adds them to this catalog. Returns the results for each file found.
 		/// </summary>
-		public Dictionary<string, CatalogFileResult> CatalogFilesInDirectory(string directory, string searchPattern, string volumeName, bool isFromReadOnlyVolume, Action<string> log)
+		public List<FileResult<CatalogFileResult>> CatalogFilesInDirectory(string directory, string searchPattern, string volumeName, bool isFromReadOnlyVolume, Action<string> log)
 		{
 			log.Invoke("Finding files...");
 			string[] allFiles = Directory.GetFiles(directory, searchPattern, SearchOption.AllDirectories);
@@ -71,10 +71,10 @@ namespace KFileBackup
 
 			log.Invoke("Getting file hashes...");
 			int processedFileCount = 0;
-			Dictionary<string, CatalogFileResult> catalogFileResults = new Dictionary<string, CatalogFileResult>(StringComparer.OrdinalIgnoreCase);
+			List<FileResult<CatalogFileResult>> catalogFileResults = new List<FileResult<CatalogFileResult>>();
 			foreach (string file in allFiles)
 			{
-				FileItem fileItem;
+				FileItem fileItem = null;
 				CatalogFileResult catalogFileResult;
 				try
 				{
@@ -89,18 +89,18 @@ namespace KFileBackup
 					log.Invoke($"Skipped ({ioException.Message}). {file}");
 				}
 
-				catalogFileResults.Add(file, catalogFileResult);
+				catalogFileResults.Add(this.CreateFileResult(file, catalogFileResult, fileItem));
 				processedFileCount++;
 				if ((processedFileCount % 20) == 0) { log.Invoke($"{processedFileCount / (double)allFiles.Length:0.0%} - {processedFileCount} of {allFiles.Length} files..."); }
 			}
-			log.Invoke($"Cataloged {allFiles.Length} files ({catalogFileResults.Count((kvp) => kvp.Value == CatalogFileResult.Same)} same, {catalogFileResults.Count((kvp) => kvp.Value == CatalogFileResult.Added)} added, {catalogFileResults.Count((kvp) => kvp.Value == CatalogFileResult.Merged)} merged, {catalogFileResults.Count((kvp) => kvp.Value == CatalogFileResult.Skipped)} skipped).");
+			log.Invoke($"Cataloged {allFiles.Length} files ({catalogFileResults.Count((res) => res.Result == CatalogFileResult.Same)} same, {catalogFileResults.Count((res) => res.Result == CatalogFileResult.Added)} added, {catalogFileResults.Count((res) => res.Result == CatalogFileResult.Merged)} merged, {catalogFileResults.Count((res) => res.Result == CatalogFileResult.Skipped)} skipped).");
 			return catalogFileResults;
 		}
 
 		/// <summary>
 		/// Checks all files in a directory to see if they are already in this catalog. Returns the results for each file found.
 		/// </summary>
-		public Dictionary<string, CheckFileResult> CheckFilesInDirectory(string directory, string searchPattern, bool shouldLogAll, Action<string> log)
+		public List<FileResult<CheckFileResult>> CheckFilesInDirectory(string directory, string searchPattern, bool shouldLogAll, Action<string> log)
 		{
 			log.Invoke("Finding files...");
 			string[] allFiles = Directory.GetFiles(directory, searchPattern, SearchOption.AllDirectories);
@@ -109,10 +109,10 @@ namespace KFileBackup
 			log.Invoke("Getting file hashes...");
 			int processedFileCount = 0;
 			long newFilesTotalLengthInBytes = 0;
-			Dictionary<string, CheckFileResult> checkFileResults = new Dictionary<string, CheckFileResult>(StringComparer.OrdinalIgnoreCase);
+			List<FileResult<CheckFileResult>> checkFileResults = new List<FileResult<CheckFileResult>>();
 			foreach (string file in allFiles)
 			{
-				FileItem fileItem;
+				FileItem fileItem = null;
 				CheckFileResult checkFileResult;
 				try
 				{
@@ -130,11 +130,11 @@ namespace KFileBackup
 					log.Invoke($"Skipped ({ioException.Message}). {file}");
 				}
 
-				checkFileResults.Add(file, checkFileResult);
+				checkFileResults.Add(this.CreateFileResult(file, checkFileResult, fileItem));
 				processedFileCount++;
 				if ((processedFileCount % 20) == 0) { log.Invoke($"{processedFileCount / (double)allFiles.Length:0.0%} - {processedFileCount} of {allFiles.Length} files..."); }
 			}
-			log.Invoke($"Checked {allFiles.Length} files ({checkFileResults.Count((kvp) => kvp.Value == CheckFileResult.Exists)} exist, {checkFileResults.Count((kvp) => kvp.Value == CheckFileResult.New)} new ({newFilesTotalLengthInBytes}), {checkFileResults.Count((kvp) => kvp.Value == CheckFileResult.Skipped)} skipped).");
+			log.Invoke($"Checked {allFiles.Length} files ({checkFileResults.Count((res) => res.Result == CheckFileResult.Exists)} exist, {checkFileResults.Count((res) => res.Result == CheckFileResult.New)} new ({newFilesTotalLengthInBytes}), {checkFileResults.Count((res) => res.Result == CheckFileResult.Skipped)} skipped).");
 			return checkFileResults;
 		}
 
@@ -213,6 +213,11 @@ namespace KFileBackup
 			}
 		}
 
+		private FileResult<T> CreateFileResult<T>(string file, T result, FileItem fileItem)
+		{
+			return new FileResult<T>(file, result, fileItem);
+		}
+
 		#endregion Helpers
 
 		#endregion Methods
@@ -263,5 +268,29 @@ namespace KFileBackup
 		New = 1,
 		/// <summary>Something went wrong (like couldn't read the file), and the file was skipped.</summary>
 		Skipped = 2,
+	}
+
+	public class FileResult<T>
+	{
+		#region Constructors
+
+		public FileResult(string file, T result, FileItem fileItem)
+		{
+			this.File = file;
+			this.Result = result;
+			this.FileItem = fileItem;
+		}
+
+		#endregion Constructors
+
+		#region Properties
+
+		public string File { get; }
+
+		public T Result { get; }
+
+		public FileItem FileItem { get; }
+
+		#endregion Properties
 	}
 }

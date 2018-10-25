@@ -82,12 +82,12 @@ namespace KFileBackup
 					fileItemCatalog.ReadCatalogFromFile(Program.catalogFileName);
 
 					Program.log($"Checking {directory}...");
-					Dictionary<string, CheckFileResult> checkFileResults = fileItemCatalog.CheckFilesInDirectory(directory, "*", showAllFiles, Program.log);
+					List<FileResult<CheckFileResult>> checkFileResults = fileItemCatalog.CheckFilesInDirectory(directory, "*", showAllFiles, Program.log);
 					if (shouldDeleteDuplicates)
 					{
 						Program.log("Deleting files already in catalog...");
-						foreach (string file in checkFileResults.Where((kvp) => kvp.Value == CheckFileResult.Exists)
-							.Select((kvp) => kvp.Key))
+						foreach (string file in checkFileResults.Where((res) => res.Result == CheckFileResult.Exists)
+							.Select((res) => res.File))
 						{
 							Program.log(file);
 							File.Delete(file);
@@ -118,12 +118,12 @@ namespace KFileBackup
 					fileItemCatalog.CatalogFilesInDirectory(baseDirectory, "*", "Base directory", false, (str) => { });
 
 					Program.log($"Comparing compare directory {compareDirectory}...");
-					Dictionary<string, CheckFileResult> checkFileResults = fileItemCatalog.CheckFilesInDirectory(compareDirectory, "*", showAllFiles, Program.log);
+					List<FileResult<CheckFileResult>> checkFileResults = fileItemCatalog.CheckFilesInDirectory(compareDirectory, "*", showAllFiles, Program.log);
 					if (shouldDeleteDuplicates)
 					{
 						Program.log("Deleting files already in catalog...");
-						foreach (string file in checkFileResults.Where((kvp) => kvp.Value == CheckFileResult.Exists)
-							.Select((kvp) => kvp.Key))
+						foreach (string file in checkFileResults.Where((res) => res.Result == CheckFileResult.Exists)
+							.Select((res) => res.File))
 						{
 							Program.log(file);
 							File.Delete(file);
@@ -213,12 +213,12 @@ namespace KFileBackup
 
 					FileItemCatalog fileItemCatalog = new FileItemCatalog();
 					Program.log($"Cataloging base directory {directory}...");
-					Dictionary<string, CatalogFileResult> catalogFileResults = fileItemCatalog.CatalogFilesInDirectory(directory, "*", "Self directory", false, Program.log);
+					List<FileResult<CatalogFileResult>> catalogFileResults = fileItemCatalog.CatalogFilesInDirectory(directory, "*", "Self directory", false, Program.log);
 					if (shouldDeleteDuplicates)
 					{
 						Program.log("Deleting files duplicated in the directory...");
-						foreach (string file in catalogFileResults.Where((kvp) => kvp.Value == CatalogFileResult.Merged)
-							.Select((kvp) => kvp.Key))
+						foreach (string file in catalogFileResults.Where((res) => res.Result == CatalogFileResult.Merged)
+							.Select((res) => res.File))
 						{
 							Program.log(file);
 							File.Delete(file);
