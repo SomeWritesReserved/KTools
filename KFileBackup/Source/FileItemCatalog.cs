@@ -246,11 +246,11 @@ namespace KFileBackup
 	/// <remarks>The enum values with the same name in <see cref="AddOrMergeResult"/> but have the same numeric values.</remarks>
 	public enum CatalogFileResult
 	{
-		/// <summary>Everything was already identical, no action was taken.</summary>
+		/// <summary>Everything was identical, no action was taken (the exact same file in the same location is already cataloged).</summary>
 		Same = 0,
-		/// <summary>A new <see cref="FileItem"/> was added to the catalog.</summary>
+		/// <summary>A new unique <see cref="FileItem"/> was added to the catalog (no other file matches the file).</summary>
 		Added = 1,
-		/// <summary>An existing <see cref="FileItem"/> was updated and merged.</summary>
+		/// <summary>An existing <see cref="FileItem"/> was updated and merged (the file is identical to an existing cataloged file but in a different location).</summary>
 		Merged = 2,
 		/// <summary>Something went wrong (like couldn't read the file), and the file was skipped.</summary>
 		Skipped = 3,
