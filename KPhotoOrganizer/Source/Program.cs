@@ -25,10 +25,10 @@ namespace KPhotoOrganizer
 			try
 			{
 				Console.WriteLine($"Getting all files");
-				List<PhotoInfo> allPhotos = Program.getAllPhotos(new DirectoryInfo(args[0]), new Progress<int>(Console.WriteLine));
+				List<PhotoInfo> allPhotos = Program.getAllPhotos(new DirectoryInfo(args[0]), new ProgressReporter());
 
 				Console.WriteLine($"Copying and organizing {allPhotos.Count} photos");
-				Program.copyAndOrganizePhotos(allPhotos, new DirectoryInfo(args[1]), new Progress<int>(Console.WriteLine));
+				Program.copyAndOrganizePhotos(allPhotos, new DirectoryInfo(args[1]), new ProgressReporter());
 			}
 			catch (Exception exception)
 			{
@@ -76,12 +76,12 @@ namespace KPhotoOrganizer
 				}
 				else
 				{
-					// [Todo]: ???
+					Console.WriteLine($"  '{photoDestinationPath}' already exists!");
 				}
 				progress?.Report(100 * progressCount / allPhotos.Count);
 				progressCount++;
 			}
-			
+
 			// Now do the pictures without a taken date
 			foreach (PhotoInfo photo in allPhotos.Where((p) => !p.DateTaken.HasValue))
 			{
@@ -102,7 +102,7 @@ namespace KPhotoOrganizer
 				}
 				else
 				{
-					// [Todo]: ???
+					Console.WriteLine($"  '{photoDestinationPath}' already exists!");
 				}
 				progress?.Report(100 * progressCount / allPhotos.Count);
 				progressCount++;
@@ -191,6 +191,28 @@ namespace KPhotoOrganizer
 			public DateTime? DateTaken { get; }
 
 			#endregion Properties
+		}
+
+		private class ProgressReporter : IProgress<int>
+		{
+			#region Fields
+
+			private int previousReportedProgress = 0;
+
+			#endregion Fields
+
+			#region Methods
+
+			void IProgress<int>.Report(int progress)
+			{
+				if (progress != this.previousReportedProgress)
+				{
+					Console.WriteLine($"{progress}%");
+					this.previousReportedProgress = progress;
+				}
+			}
+
+			#endregion Methods
 		}
 
 		#endregion Nested Types
