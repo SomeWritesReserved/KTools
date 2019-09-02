@@ -24,18 +24,23 @@ namespace KPhotoOrganizer
 		{
 			try
 			{
-				Console.WriteLine($"Getting all files");
+				Program.log($"---");
+				Program.log($"{DateTime.Now}");
+				Program.log($"Getting all files");
 				List<PhotoInfo> allPhotos = Program.getAllPhotos(new DirectoryInfo(args[0]), new ProgressReporter());
+				Program.log($"Got {allPhotos.Count} photos ({allPhotos.Where((p) => p.DateTaken.HasValue).Count()} with dates, {allPhotos.Where((p) => !p.DateTaken.HasValue).Count()} with guesses).");
 
-				Console.WriteLine($"Copying and organizing {allPhotos.Count} photos");
-				Program.copyAndOrganizePhotos(allPhotos, new DirectoryInfo(args[1]), new ProgressReporter());
+				if (args.Contains("-y"))
+				{
+					Program.log($"Copying and organizing {allPhotos.Count} photos");
+					Program.copyAndOrganizePhotos(allPhotos, new DirectoryInfo(args[1]), new ProgressReporter());
+				}
 			}
 			catch (Exception exception)
 			{
-				Console.WriteLine("-----------");
-				Console.WriteLine($"Exception ({exception.GetType().Name}): {exception.Message}");
+				Program.log("-----------");
+				Program.log($"Exception ({exception.GetType().Name}): {exception.Message}");
 			}
-			Console.ReadKey(true);
 		}
 
 		private static List<PhotoInfo> getAllPhotos(DirectoryInfo sourceDirectory, IProgress<int> progress)
@@ -67,16 +72,23 @@ namespace KPhotoOrganizer
 					photo.DateTaken.Value.Year.ToString(),
 					Program.getMonthString(photo.DateTaken.Value),
 					Program.getDayString(photo.DateTaken.Value),
+					photo.File.Directory.Name,
 					photo.File.Name);
 
 				Directory.CreateDirectory(Path.GetDirectoryName(photoDestinationPath));
 				if (!File.Exists(photoDestinationPath))
 				{
 					photo.File.CopyTo(photoDestinationPath);
+					photo.CopiedTo = photoDestinationPath;
+					Program.save($"y|{photo.File.FullName}|{photoDestinationPath}");
 				}
 				else
 				{
-					Console.WriteLine($"  '{photoDestinationPath}' already exists!");
+					if (!File.ReadAllBytes(photo.File.FullName).SequenceEqual(File.ReadAllBytes(photoDestinationPath)))
+					{
+						Program.log($"  '{photoDestinationPath}' already exists and is different!");
+						Program.save($"d|{photo.File.FullName}|{photoDestinationPath}");
+					}
 				}
 				progress?.Report(100 * progressCount / allPhotos.Count);
 				progressCount++;
@@ -93,16 +105,23 @@ namespace KPhotoOrganizer
 					dateTaken.Year.ToString(),
 					Program.getMonthString(dateTaken),
 					Program.getDayString(dateTaken),
+					photo.File.Directory.Name,
 					photo.File.Name);
 
 				Directory.CreateDirectory(Path.GetDirectoryName(photoDestinationPath));
 				if (!File.Exists(photoDestinationPath))
 				{
 					photo.File.CopyTo(photoDestinationPath);
+					photo.CopiedTo = photoDestinationPath;
+					Program.save($"y|{photo.File.FullName}|{photoDestinationPath}");
 				}
 				else
 				{
-					Console.WriteLine($"  '{photoDestinationPath}' already exists!");
+					if (!File.ReadAllBytes(photo.File.FullName).SequenceEqual(File.ReadAllBytes(photoDestinationPath)))
+					{
+						Program.log($"  '{photoDestinationPath}' already exists and is different!");
+						Program.save($"d|{photo.File.FullName}|{photoDestinationPath}");
+					}
 				}
 				progress?.Report(100 * progressCount / allPhotos.Count);
 				progressCount++;
@@ -168,6 +187,17 @@ namespace KPhotoOrganizer
 			return dateTime.ToString("MM-dd-yyyy");
 		}
 
+		private static void log(string message)
+		{
+			Console.WriteLine(message);
+			File.AppendAllText("KPhotoOrganizer.log", message + Environment.NewLine);
+		}
+
+		private static void save(string message)
+		{
+			File.AppendAllText("Work.log", message + Environment.NewLine);
+		}
+
 		#endregion Methods
 
 		#region Nested Types
@@ -189,6 +219,8 @@ namespace KPhotoOrganizer
 			public FileInfo File { get; }
 
 			public DateTime? DateTaken { get; }
+
+			public string CopiedTo { get; set; }
 
 			#endregion Properties
 		}
