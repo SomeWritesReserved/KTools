@@ -74,6 +74,18 @@ namespace KCatalog
 
 		#region Helpers
 
+		public static Hash Parse(string s)
+		{
+			Hash hash = new Hash();
+			if (s.Length != 64) { throw new FormatException("Not a hash"); }
+			if (!long.TryParse(s.Substring(0, 16), NumberStyles.HexNumber, null, out long hashPart1)) { throw new FormatException("Not a hash"); }
+			if (!long.TryParse(s.Substring(16, 16), NumberStyles.HexNumber, null, out long hashPart2)) { throw new FormatException("Not a hash"); }
+			if (!long.TryParse(s.Substring(32, 16), NumberStyles.HexNumber, null, out long hashPart3)) { throw new FormatException("Not a hash"); }
+			if (!long.TryParse(s.Substring(48, 16), NumberStyles.HexNumber, null, out long hashPart4)) { throw new FormatException("Not a hash"); }
+			hash = new Hash(hashPart1, hashPart2, hashPart3, hashPart4);
+			return hash;
+		}
+
 		public static bool TryParse(string s, out Hash hash)
 		{
 			hash = new Hash();

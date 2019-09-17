@@ -22,6 +22,7 @@ namespace KCatalog
 			{ "help", new Tuple<Action<Dictionary<string, object>>, string, string>(Program.commandHelp, "<command>", "Gets more detailed help for a specific command and its usage (help <command>).") },
 			{ "catalog", new Tuple<Action<Dictionary<string, object>>, string, string>(Program.commandCatalog, "<DirectoryToCatalog>", "Catalogs all files in <DirectoryToCatalog> and its subdirectories. The catalog will be saved as a .kcatalog file in <DirectoryToCatalog>.") },
 			{ "search", new Tuple<Action<Dictionary<string, object>>, string, string>(Program.commandFileSearch, "[--norecursive] [--delete] <FileNamePattern> <DirectoryToSearch>", "Finds all files in <DirectoryToSearch> and its subdirectories (unless --norecursive is specified) matching <FileNamePattern>. Will list the files that are found. If --delete is specified they will also be deleted (useful for purging files like thumbs.db).") },
+			{ "dedup", new Tuple<Action<Dictionary<string, object>>, string, string>(Program.commandDeduplicate, "[--delete] <DirectoryBase> <DirectoryToCheck>", "Finds all files in <DirectoryToCheck> and its subdirectories that already exist in <DirectoryBase> (i.e. files in <DirectoryToCheck> that duplicate files in <DirectoryBase>). Will list the files that are found. If --delete is specified they will also be deleted.") },
 		};
 
 		#endregion Fields
@@ -173,7 +174,7 @@ namespace KCatalog
 				Console.WriteLine($"    {command.Key}:\t{command.Value.Item3}");
 			}
 			Console.WriteLine();
-			Console.WriteLine("All commands accept the --log switch to write their output to a time stamped log file in addition to stdio.");
+			Console.WriteLine("All commands accept the --log switch to write their output to a time stamped log file in addition to console output.");
 			Console.WriteLine($"Type '<command> help' or '<command> ?' for more info.");
 		}
 
@@ -186,8 +187,10 @@ namespace KCatalog
 			string commandName = (string)arguments["command"];
 			if (Program.commands.ContainsKey(commandName))
 			{
-				Console.WriteLine(Program.commands[commandName].Item3);
 				Console.WriteLine($"  {commandName} [--log] {Program.commands[commandName].Item2}");
+				Console.WriteLine();
+				Console.Write(Program.commands[commandName].Item3);
+				Console.WriteLine(" If --log is specified the command will write output to a time stamped log file in addition to console output.");
 			}
 			else
 			{
@@ -215,7 +218,7 @@ namespace KCatalog
 
 			FileInfo[] foundFiles = directoryToCatalog.GetFiles("*", SearchOption.AllDirectories);
 
-			List<Tuple<string, Hash, long>> fileHashes = new List<Tuple<string, Hash, long>>();
+			List<FileHash> fileHashes = new List<FileHash>();
 			int fileCount = 0;
 			foreach (FileInfo file in foundFiles)
 			{
@@ -224,9 +227,9 @@ namespace KCatalog
 				{
 					using (FileStream fileStream = File.OpenRead(file.FullName))
 					{
-						long fileLength = fileStream.Length;
+						long fileSize = fileStream.Length;
 						Hash hash = Hash.GetFileHash(fileStream);
-						fileHashes.Add(Tuple.Create(relativePath, hash, fileLength));
+						fileHashes.Add(new FileHash(relativePath, fileSize, hash));
 					}
 				}
 				catch (IOException ioException)
@@ -237,14 +240,7 @@ namespace KCatalog
 				if ((fileCount % 20) == 0) { Console.WriteLine($"{(double)fileCount / foundFiles.Length:P}% ({fileCount} / {foundFiles.Length})"); }
 			}
 
-			new XDocument(
-				new XElement("Catalog",
-					new XElement("Date", DateTime.Now),
-					new XElement("Files",
-						fileHashes.Select((fileHash) => new XElement("f", new XAttribute("p", fileHash.Item1), new XAttribute("h", fileHash.Item2), new XAttribute("l", fileHash.Item3)))
-					)
-				)
-			).Save(catalogFile.FullName);
+			Program.saveFileHashes(catalogFile.FullName, fileHashes);
 
 			Console.WriteLine($"Cataloged {foundFiles.Length} files in '{directoryToCatalog.FullName}'.");
 		}
@@ -277,13 +273,105 @@ namespace KCatalog
 					return;
 				}
 
-				foreach (FileInfo file in foundFiles)
+				int deletedCount = 0;
+				try
 				{
-					if (shouldDelete) { file.Delete(); }
+					foreach (FileInfo file in foundFiles)
+					{
+						file.Delete();
+						deletedCount++;
+					}
 				}
-				Console.WriteLine($"Deleted {foundFiles.Length} files.");
+				finally
+				{
+					Console.WriteLine($"Deleted {deletedCount} files.");
+				}
 			}
 		}
+
+		private static void commandDeduplicate(Dictionary<string, object> arguments)
+		{
+			bool shouldDelete = arguments.ContainsKey("--delete");
+
+			DirectoryInfo directoryBase = (DirectoryInfo)arguments["DirectoryBase"];
+			if (!directoryBase.Exists) { throw new CommandLineArgumentException("<DirectoryBase>", "Directory does not exist."); }
+			DirectoryInfo directoryToCheck = (DirectoryInfo)arguments["DirectoryToCheck"];
+			if (!directoryToCheck.Exists) { throw new CommandLineArgumentException("<DirectoryToCheck>", "Directory does not exist."); }
+
+			FileInfo baseCatalogFile = new FileInfo(Path.Combine(directoryBase.FullName, ".kcatalog"));
+			if (!baseCatalogFile.Exists) { throw new CommandLineArgumentException("<DirectoryBase>", "Directory does not contain a catalog file."); }
+			FileInfo toCheckCatalogFile = new FileInfo(Path.Combine(directoryToCheck.FullName, ".kcatalog"));
+			if (!toCheckCatalogFile.Exists) { throw new CommandLineArgumentException("<DirectoryToCheck>", "Directory does not contain a catalog file."); }
+
+			FileCatalog baseFileCatalog = new FileCatalog(Program.loadFileHashes(baseCatalogFile.FullName));
+			List<FileHash> toCheckFileHashes = Program.loadFileHashes(toCheckCatalogFile.FullName);
+
+			List<FileHash> fileHashesToDelete = new List<FileHash>();
+			foreach (FileHash toCheckFileHash in toCheckFileHashes)
+			{
+				IList<FileHash> baseFileHashes = baseFileCatalog.Find(toCheckFileHash.Hash);
+				if (!baseFileHashes.Any()) { continue; }
+
+				string fullPath = Path.Combine(directoryToCheck.FullName, toCheckFileHash.RelativePath);
+				if (!File.Exists(fullPath)) { continue; }
+
+				// Todo: If we found duplicates, make sure their hashes are still identical and not just stale
+				fileHashesToDelete.Add(toCheckFileHash);
+				Program.log(toCheckFileHash.RelativePath);
+			}
+			Console.WriteLine($"Found {fileHashesToDelete.Count} files in '{directoryToCheck}' duplicating those in '{directoryBase}'.");
+
+			if (shouldDelete && fileHashesToDelete.Any())
+			{
+				Console.WriteLine($"Really delete? <yes|no>");
+				if (!string.Equals(Console.ReadLine(), "yes", StringComparison.OrdinalIgnoreCase))
+				{
+					Console.WriteLine("Aborting, nothing deleted.");
+					return;
+				}
+
+				int deletedCount = 0;
+				try
+				{
+					foreach (FileHash fileHash in fileHashesToDelete)
+					{
+						string fullPath = Path.Combine(directoryToCheck.FullName, fileHash.RelativePath);
+						File.SetAttributes(fullPath, FileAttributes.Normal);
+						File.Delete(fullPath);
+						deletedCount++;
+					}
+				}
+				finally
+				{
+					Console.WriteLine($"Deleted {deletedCount} files.");
+				}
+			}
+
+		}
+
+		#region Helpers
+
+		private static void saveFileHashes(string path, IEnumerable<FileHash> fileHashes)
+		{
+			new XDocument(
+				new XElement("Catalog",
+					new XElement("Date", DateTime.Now),
+					new XElement("Files",
+						fileHashes.Select((fileHash) => new XElement("f", new XAttribute("p", fileHash.RelativePath), new XAttribute("h", fileHash.Hash), new XAttribute("l", fileHash.FileSize)))
+					)
+				)
+			).Save(path);
+		}
+
+		private static List<FileHash> loadFileHashes(string path)
+		{
+			XDocument xDocument = XDocument.Load(path);
+			return xDocument.Element("Catalog").Element("Files").Elements("f")
+				.Select((element) => new FileHash(element.Attribute("p").Value, long.Parse(element.Attribute("l").Value), Hash.Parse(element.Attribute("h").Value)))
+				.ToList();
+		}
+
+		#endregion Helpers
 
 		#endregion Commands
 
