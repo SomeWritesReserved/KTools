@@ -22,7 +22,7 @@ namespace KCatalog
 			{ "help", new Tuple<Action<Dictionary<string, object>>, string, string>(Program.commandHelp, "<command>", "Gets more detailed help for a specific command and its usage (help <command>).") },
 			{ "catalog", new Tuple<Action<Dictionary<string, object>>, string, string>(Program.commandCatalog, "<DirectoryToCatalog>", "Catalogs all files in <DirectoryToCatalog> and its subdirectories. The catalog will be saved as a .kcatalog file in <DirectoryToCatalog>.") },
 			{ "search", new Tuple<Action<Dictionary<string, object>>, string, string>(Program.commandFileSearch, "[--norecursive] [--delete] <FileNamePattern> <DirectoryToSearch>", "Finds all files in <DirectoryToSearch> and its subdirectories (unless --norecursive is specified) matching <FileNamePattern>. Will list the files that are found. If --delete is specified they will also be deleted (useful for purging files like thumbs.db).") },
-			{ "dedup", new Tuple<Action<Dictionary<string, object>>, string, string>(Program.commandDeduplicate, "[--delete] <DirectoryBase> <DirectoryToCheck>", "Finds all files in <DirectoryToCheck> and its subdirectories that already exist in <DirectoryBase> (i.e. files in <DirectoryToCheck> that duplicate files in <DirectoryBase>). Will list the files that are found. If --delete is specified they will also be deleted.") },
+			{ "dedupe", new Tuple<Action<Dictionary<string, object>>, string, string>(Program.commandDeduplicate, "[--delete] <DirectoryBase> <DirectoryToCheck>", "Finds all files in <DirectoryToCheck> and its subdirectories that already exist in <DirectoryBase> (i.e. files in <DirectoryToCheck> that duplicate files in <DirectoryBase>). Will list the files that are found. If --delete is specified they will also be deleted.") },
 		};
 
 		#endregion Fields
@@ -204,11 +204,17 @@ namespace KCatalog
 			DirectoryInfo directoryToCatalog = (DirectoryInfo)arguments["DirectoryToCatalog"];
 			if (!directoryToCatalog.Exists) { throw new CommandLineArgumentException("<DirectoryToCatalog>", "Directory does not exist."); }
 
+			Console.Write("Getting files... ");
+			FileInfo[] foundFiles = directoryToCatalog.GetFiles("*", SearchOption.AllDirectories);
+			Console.WriteLine($"Found {foundFiles.Length} files.");
+
 			FileInfo catalogFile = new FileInfo(Path.Combine(directoryToCatalog.FullName, ".kcatalog"));
 			if (catalogFile.Exists)
 			{
 				Console.WriteLine($"Catalog file already exists: {catalogFile.FullName}");
-				Console.WriteLine($"Really overwrite? <yes|no>");
+				List<FileHash> oldFileHashes = Program.loadFileHashes(catalogFile.FullName, out DateTime dateTime);
+				Console.WriteLine($"It was taken {(DateTime.Now - dateTime).Days} days ago and contains {oldFileHashes.Count} files.");
+				Console.WriteLine($"Overwrite existing catalog? <yes|no>");
 				if (!string.Equals(Console.ReadLine(), "yes", StringComparison.OrdinalIgnoreCase))
 				{
 					Console.WriteLine("Aborting, nothing overwritten.");
@@ -216,8 +222,7 @@ namespace KCatalog
 				}
 			}
 
-			FileInfo[] foundFiles = directoryToCatalog.GetFiles("*", SearchOption.AllDirectories);
-
+			Console.WriteLine("Getting hashes...");
 			List<FileHash> fileHashes = new List<FileHash>();
 			int fileCount = 0;
 			foreach (FileInfo file in foundFiles)
@@ -303,8 +308,8 @@ namespace KCatalog
 			FileInfo toCheckCatalogFile = new FileInfo(Path.Combine(directoryToCheck.FullName, ".kcatalog"));
 			if (!toCheckCatalogFile.Exists) { throw new CommandLineArgumentException("<DirectoryToCheck>", "Directory does not contain a catalog file."); }
 
-			FileCatalog baseFileCatalog = new FileCatalog(Program.loadFileHashes(baseCatalogFile.FullName));
-			List<FileHash> toCheckFileHashes = Program.loadFileHashes(toCheckCatalogFile.FullName);
+			FileCatalog baseFileCatalog = new FileCatalog(Program.loadFileHashes(baseCatalogFile.FullName, out _));
+			List<FileHash> toCheckFileHashes = Program.loadFileHashes(toCheckCatalogFile.FullName, out _);
 
 			List<FileHash> fileHashesToDelete = new List<FileHash>();
 			foreach (FileHash toCheckFileHash in toCheckFileHashes)
@@ -363,9 +368,10 @@ namespace KCatalog
 			).Save(path);
 		}
 
-		private static List<FileHash> loadFileHashes(string path)
+		private static List<FileHash> loadFileHashes(string path, out DateTime dateTime)
 		{
 			XDocument xDocument = XDocument.Load(path);
+			dateTime = DateTime.Parse(xDocument.Element("Catalog").Element("Date").Value);
 			return xDocument.Element("Catalog").Element("Files").Elements("f")
 				.Select((element) => new FileHash(element.Attribute("p").Value, long.Parse(element.Attribute("l").Value), Hash.Parse(element.Attribute("h").Value)))
 				.ToList();
