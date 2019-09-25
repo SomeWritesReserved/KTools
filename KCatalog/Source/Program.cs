@@ -213,7 +213,7 @@ namespace KCatalog
 			{
 				Console.WriteLine($"Catalog file already exists: {catalogFile.FullName}");
 				List<FileHash> oldFileHashes = Program.loadFileHashes(catalogFile.FullName, out DateTime dateTime);
-				Console.WriteLine($"It was taken {(DateTime.Now - dateTime).Days} days ago and contains {oldFileHashes.Count} files.");
+				Console.WriteLine($"It was taken {(DateTime.Now - dateTime).Days} days ago and contains {oldFileHashes.Count} files ({foundFiles.Length - oldFileHashes.Count} difference).");
 				Console.WriteLine($"Overwrite existing catalog? <yes|no>");
 				if (!string.Equals(Console.ReadLine(), "yes", StringComparison.OrdinalIgnoreCase))
 				{
