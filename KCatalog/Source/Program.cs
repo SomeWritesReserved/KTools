@@ -225,6 +225,7 @@ namespace KCatalog
 			Console.WriteLine("Getting hashes...");
 			List<FileHash> fileHashes = new List<FileHash>();
 			int fileCount = 0;
+			List<string> errors = new List<string>();
 			foreach (FileInfo file in foundFiles)
 			{
 				string relativePath = file.FullName.Substring(directoryToCatalog.FullName.Length);
@@ -239,7 +240,9 @@ namespace KCatalog
 				}
 				catch (IOException ioException)
 				{
-					Program.log($"Couldn't read ({ioException.Message}): {relativePath}");
+					string error = $"Couldn't read ({ioException.Message}): {relativePath}";
+					errors.Add(error);
+					Program.log(error);
 				}
 				fileCount++;
 				if ((fileCount % 20) == 0) { Console.WriteLine($"{(double)fileCount / foundFiles.Length:P}% ({fileCount} / {foundFiles.Length})"); }
@@ -248,6 +251,11 @@ namespace KCatalog
 			Program.saveFileHashes(catalogFile.FullName, fileHashes);
 
 			Console.WriteLine($"Cataloged {foundFiles.Length} files in '{directoryToCatalog.FullName}'.");
+			if (errors.Any())
+			{
+				Console.WriteLine($"{errors.Count} errors:");
+				errors.ForEach((error) => Console.WriteLine($"  {error}"));
+			}
 		}
 
 		private static void commandFileSearch(Dictionary<string, object> arguments)
