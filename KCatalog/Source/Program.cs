@@ -21,6 +21,7 @@ namespace KCatalog
 		{
 			{ "help", new Tuple<Action<Dictionary<string, object>>, string, string>(Program.commandHelp, "<command>", "Gets more detailed help for a specific command and its usage (help <command>).") },
 			{ "catalog", new Tuple<Action<Dictionary<string, object>>, string, string>(Program.commandCatalog, "<DirectoryToCatalog>", "Catalogs all files in <DirectoryToCatalog> and its subdirectories. The catalog will be saved as a .kcatalog file in <DirectoryToCatalog>.") },
+			{ "checkcatalog", new Tuple<Action<Dictionary<string, object>>, string, string>(Program.commandCheckCatalog, "<DirectoryToCatalog>", "Checks all files in <DirectoryToCatalog> and its subdirectories, listing any files that have been added or removed since when the catalog was taken.") },
 			{ "search", new Tuple<Action<Dictionary<string, object>>, string, string>(Program.commandFileSearch, "[--norecursive] [--delete] <FileNamePattern> <DirectoryToSearch>", "Finds all files in <DirectoryToSearch> and its subdirectories (unless --norecursive is specified) matching <FileNamePattern>. Will list the files that are found. If --delete is specified they will also be deleted (useful for purging files like thumbs.db).") },
 			{ "dedupe", new Tuple<Action<Dictionary<string, object>>, string, string>(Program.commandDeduplicate, "[--delete] <DirectoryBase> <DirectoryToCheck>", "Finds all files in <DirectoryToCheck> and its subdirectories that already exist in <DirectoryBase> (i.e. files in <DirectoryToCheck> that duplicate files in <DirectoryBase>). Will list the files that are found. If --delete is specified they will also be deleted.") },
 		};
@@ -228,7 +229,7 @@ namespace KCatalog
 			List<string> errors = new List<string>();
 			foreach (FileInfo file in foundFiles)
 			{
-				string relativePath = file.FullName.Substring(directoryToCatalog.FullName.Length);
+				string relativePath = file.GetRelativePath(directoryToCatalog);
 				try
 				{
 					using (FileStream fileStream = File.OpenRead(file.FullName))
@@ -258,6 +259,31 @@ namespace KCatalog
 			}
 		}
 
+		private static void commandCheckCatalog(Dictionary<string, object> arguments)
+		{
+			DirectoryInfo directoryToCatalog = (DirectoryInfo)arguments["DirectoryToCatalog"];
+			if (!directoryToCatalog.Exists) { throw new CommandLineArgumentException("<DirectoryToCatalog>", "Directory does not exist."); }
+
+			FileInfo catalogFile = new FileInfo(Path.Combine(directoryToCatalog.FullName, ".kcatalog"));
+			if (!catalogFile.Exists) { throw new CommandLineArgumentException("<DirectoryToCatalog>", "Directory does not contain a catalog file."); }
+
+			List<FileHash> catalogFileHashes = Program.loadFileHashes(catalogFile.FullName, out _);
+
+			Console.Write("Getting files... ");
+			Dictionary<string, FileInfo> foundFiles = directoryToCatalog.GetFiles("*", SearchOption.AllDirectories).ToDictionary((file) => file.GetRelativePath(directoryToCatalog), (file) => file, StringComparer.OrdinalIgnoreCase);
+			Console.WriteLine($"Found {foundFiles.Count} files.");
+
+			foreach (FileHash fileHash in catalogFileHashes)
+			{
+				if (!foundFiles.Remove(fileHash.RelativePath)) { Program.log($"Delete: {fileHash.RelativePath}"); }
+			}
+
+			foreach (string leftOverFile in foundFiles.Keys.OrderBy((s) => s))
+			{
+				Program.log($"Added : {leftOverFile}");
+			}
+		}
+
 		private static void commandFileSearch(Dictionary<string, object> arguments)
 		{
 			bool shouldDelete = arguments.ContainsKey("--delete");
@@ -272,7 +298,7 @@ namespace KCatalog
 
 			foreach (FileInfo file in foundFiles)
 			{
-				string relativePath = file.FullName.Substring(directoryToSearch.FullName.Length);
+				string relativePath = file.GetRelativePath(directoryToSearch);
 				Program.log(relativePath);
 			}
 			Console.WriteLine($"Found {foundFiles.Length} files matching '{fileNamePattern}' in '{directoryToSearch.FullName}'.");
@@ -388,6 +414,18 @@ namespace KCatalog
 		#endregion Helpers
 
 		#endregion Commands
+
+		#endregion Methods
+	}
+
+	public static class ExtensionMethodHelpers
+	{
+		#region Methods
+
+		public static string GetRelativePath(this FileInfo fileInfo, DirectoryInfo baseDirectoryInfo)
+		{
+			return fileInfo.FullName.Substring(baseDirectoryInfo.FullName.Length);
+		}
 
 		#endregion Methods
 	}
