@@ -224,31 +224,7 @@ namespace KCatalog
 			}
 
 			Console.WriteLine("Getting hashes...");
-			List<FileHash> fileHashes = new List<FileHash>();
-			int fileCount = 0;
-			List<string> errors = new List<string>();
-			foreach (FileInfo file in foundFiles)
-			{
-				string relativePath = file.GetRelativePath(directoryToCatalog);
-				try
-				{
-					using (FileStream fileStream = File.OpenRead(file.FullName))
-					{
-						long fileSize = fileStream.Length;
-						Hash hash = Hash.GetFileHash(fileStream);
-						fileHashes.Add(new FileHash(relativePath, fileSize, hash));
-					}
-				}
-				catch (IOException ioException)
-				{
-					string error = $"Couldn't read ({ioException.Message}): {relativePath}";
-					errors.Add(error);
-					Program.log(error);
-				}
-				fileCount++;
-				if ((fileCount % 20) == 0) { Console.WriteLine($"{(double)fileCount / foundFiles.Length:P}% ({fileCount} / {foundFiles.Length})"); }
-			}
-
+			List<FileHash> fileHashes = Program.getFileHashes(directoryToCatalog, foundFiles, out List<string> errors);
 			Program.saveFileHashes(catalogFile.FullName, fileHashes);
 
 			Console.WriteLine($"Cataloged {foundFiles.Length} files in '{directoryToCatalog.FullName}'.");
@@ -389,6 +365,33 @@ namespace KCatalog
 		}
 
 		#region Helpers
+
+		private static List<FileHash> getFileHashes(DirectoryInfo baseDirectory, FileInfo[] allFiles, out List<string> errors)
+		{
+			errors = new List<string>();
+			List<FileHash> fileHashes = new List<FileHash>();
+			int fileCount = 0;
+			foreach (FileInfo file in allFiles)
+			{
+				string relativePath = file.GetRelativePath(baseDirectory);
+				try
+				{
+					using (FileStream fileStream = File.OpenRead(file.FullName))
+					{
+						long fileSize = fileStream.Length;
+						Hash hash = Hash.GetFileHash(fileStream);
+						fileHashes.Add(new FileHash(relativePath, fileSize, hash));
+					}
+				}
+				catch (IOException ioException)
+				{
+					errors.Add($"Couldn't read ({ioException.Message}): {relativePath}");
+				}
+				fileCount++;
+				if ((fileCount % 20) == 0) { Console.WriteLine($"{(double)fileCount / allFiles.Length:P}% ({fileCount} / {allFiles.Length})"); }
+			}
+			return fileHashes;
+		}
 
 		private static void saveFileHashes(string path, IEnumerable<FileHash> fileHashes)
 		{
