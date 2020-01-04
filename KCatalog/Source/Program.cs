@@ -21,9 +21,10 @@ namespace KCatalog
 		{
 			{ "help", new Tuple<Action<Dictionary<string, object>>, string, string>(Program.commandHelp, "<command>", "Gets more detailed help for a specific command and its usage (help <command>).") },
 			{ "catalog", new Tuple<Action<Dictionary<string, object>>, string, string>(Program.commandCatalog, "<DirectoryToCatalog>", "Catalogs all files in <DirectoryToCatalog> and its subdirectories. The catalog will be saved as a .kcatalog file in <DirectoryToCatalog>.") },
-			{ "checkcatalog", new Tuple<Action<Dictionary<string, object>>, string, string>(Program.commandCheckCatalog, "<DirectoryToCatalog>", "Checks all files in <DirectoryToCatalog> and its subdirectories, listing any files that have been added or removed since when the catalog was taken.") },
+			{ "checkcatalog", new Tuple<Action<Dictionary<string, object>>, string, string>(Program.commandCheckCatalog, "<DirectoryToCatalog>", "Checks all files in <DirectoryToCatalog> and its subdirectories, listing any files that have been added or removed since when the catalog was taken. This does not check file contents or hashes, it just checks for new/deleted file paths.") },
 			{ "search", new Tuple<Action<Dictionary<string, object>>, string, string>(Program.commandFileSearch, "[--norecursive] [--delete] <FileNamePattern> <DirectoryToSearch>", "Finds all files in <DirectoryToSearch> and its subdirectories (unless --norecursive is specified) matching <FileNamePattern>. Will list the files that are found. If --delete is specified they will also be deleted (useful for purging files like thumbs.db).") },
 			{ "dedupe", new Tuple<Action<Dictionary<string, object>>, string, string>(Program.commandDeduplicate, "[--delete] <DirectoryBase> <DirectoryToCheck>", "Finds all files in <DirectoryToCheck> and its subdirectories that already exist in <DirectoryBase> (i.e. files in <DirectoryToCheck> that duplicate files in <DirectoryBase>). Will list the files that are found. If --delete is specified they will also be deleted.") },
+			{ "findempty", new Tuple<Action<Dictionary<string, object>>, string, string>(Program.commandFindEmptyDirs, "[--delete] <DirectoryToSearch>", "Searches all directories in <DirectoryToSearch> and its subdirectories for empty directories. If --delete is specified they will also be deleted. A directory is empty if it contains no files in itself or any of its subdirectories. This will only print the upper-most directory if all of its subdirectories are also empty.") },
 		};
 
 		#endregion Fields
@@ -361,8 +362,61 @@ namespace KCatalog
 					Console.WriteLine($"Deleted {deletedCount} files.");
 				}
 			}
-
 		}
+
+		private static void commandFindEmptyDirs(Dictionary<string, object> arguments)
+		{
+			bool shouldDelete = arguments.ContainsKey("--delete");
+
+			DirectoryInfo directoryToSearch = (DirectoryInfo)arguments["DirectoryToSearch"];
+			if (!directoryToSearch.Exists) { throw new CommandLineArgumentException("<DirectoryToSearch>", "Directory does not exist."); }
+
+			List<DirectoryInfo> emptyDirectories = new List<DirectoryInfo>();
+			void deleteRecursively(DirectoryInfo directoryInfo)
+			{
+				if (!directoryInfo.GetFiles("*", SearchOption.AllDirectories).Any())
+				{
+					emptyDirectories.Add(directoryInfo);
+					Program.log(directoryInfo.GetRelativePath(directoryToSearch));
+				}
+				else
+				{
+					foreach (DirectoryInfo subDirectoryInfo in directoryInfo.GetDirectories("*", SearchOption.TopDirectoryOnly))
+					{
+						deleteRecursively(subDirectoryInfo);
+					}
+				}
+			}
+
+			deleteRecursively(directoryToSearch);
+			Console.WriteLine($"Found {emptyDirectories.Count} empty directories in '{directoryToSearch}'.");
+
+			if (shouldDelete && emptyDirectories.Any())
+			{
+				Console.WriteLine($"Really delete? <yes|no>");
+				if (!string.Equals(Console.ReadLine(), "yes", StringComparison.OrdinalIgnoreCase))
+				{
+					Console.WriteLine("Aborting, nothing deleted.");
+					return;
+				}
+
+				int deletedCount = 0;
+				try
+				{
+					foreach (DirectoryInfo directoryInfo in emptyDirectories)
+					{
+						directoryInfo.Delete(recursive: true);
+						deletedCount++;
+					}
+				}
+				finally
+				{
+					Console.WriteLine($"Deleted {deletedCount} empty directories.");
+				}
+			}
+		}
+
+		#endregion Commands
 
 		#region Helpers
 
@@ -416,8 +470,6 @@ namespace KCatalog
 
 		#endregion Helpers
 
-		#endregion Commands
-
 		#endregion Methods
 	}
 
@@ -425,9 +477,9 @@ namespace KCatalog
 	{
 		#region Methods
 
-		public static string GetRelativePath(this FileInfo fileInfo, DirectoryInfo baseDirectoryInfo)
+		public static string GetRelativePath(this FileSystemInfo fileOrDirectory, DirectoryInfo baseDirectoryInfo)
 		{
-			return fileInfo.FullName.Substring(baseDirectoryInfo.FullName.Length);
+			return fileOrDirectory.FullName.Substring(baseDirectoryInfo.FullName.Length);
 		}
 
 		#endregion Methods
