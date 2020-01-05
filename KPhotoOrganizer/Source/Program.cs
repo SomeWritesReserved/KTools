@@ -72,7 +72,6 @@ namespace KPhotoOrganizer
 					photo.DateTaken.Value.Year.ToString(),
 					Program.getMonthString(photo.DateTaken.Value),
 					Program.getDayString(photo.DateTaken.Value),
-					photo.File.Directory.Name,
 					photo.File.Name);
 
 				Directory.CreateDirectory(Path.GetDirectoryName(photoDestinationPath));
@@ -105,7 +104,7 @@ namespace KPhotoOrganizer
 					dateTaken.Year.ToString(),
 					Program.getMonthString(dateTaken),
 					Program.getDayString(dateTaken),
-					photo.File.Directory.Name,
+					photo.File.Directory.Name, // If we don't know the date and its a guess, be sure to keep its parent folder name
 					photo.File.Name);
 
 				Directory.CreateDirectory(Path.GetDirectoryName(photoDestinationPath));
