@@ -173,9 +173,10 @@ namespace KCatalog
 			Console.WriteLine();
 			foreach (var command in Program.commands)
 			{
-				Console.WriteLine($"    {command.Key}:\t{command.Value.Item3}");
+				Console.WriteLine($"-{command.Key}-");
+				Console.WriteLine($"{command.Value.Item3}");
+				Console.WriteLine();
 			}
-			Console.WriteLine();
 			Console.WriteLine("All commands accept the --log switch to write their output to a time stamped log file in addition to console output.");
 			Console.WriteLine($"Type '<command> help' or '<command> ?' for more info.");
 		}
