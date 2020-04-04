@@ -19,12 +19,23 @@ namespace KCatalog
 
 		private static readonly Dictionary<string, Tuple<Action<Dictionary<string, object>>, string, string>> commands = new Dictionary<string, Tuple<Action<Dictionary<string, object>>, string, string>>(StringComparer.OrdinalIgnoreCase)
 		{
-			{ "help", new Tuple<Action<Dictionary<string, object>>, string, string>(Program.commandHelp, "<command>", "Gets more detailed help for a specific command and its usage (help <command>).") },
-			{ "catalog", new Tuple<Action<Dictionary<string, object>>, string, string>(Program.commandCatalog, "<DirectoryToCatalog>", "Catalogs all files in <DirectoryToCatalog> and its subdirectories. The catalog will be saved as a .kcatalog file in <DirectoryToCatalog>.") },
-			{ "checkcatalog", new Tuple<Action<Dictionary<string, object>>, string, string>(Program.commandCheckCatalog, "<DirectoryToCatalog>", "Checks all files in <DirectoryToCatalog> and its subdirectories, listing any files that have been added or removed since when the catalog was taken. This does not check file contents or hashes, it just checks for new/deleted file paths.") },
-			{ "search", new Tuple<Action<Dictionary<string, object>>, string, string>(Program.commandFileSearch, "[--norecursive] [--delete] <DirectoryToSearch> <FileNamePattern>", "Finds all files in <DirectoryToSearch> and its subdirectories (unless --norecursive is specified) matching <FileNamePattern>. Will list the files that are found. If --delete is specified they will also be deleted (useful for purging files like thumbs.db).") },
-			{ "dedupe", new Tuple<Action<Dictionary<string, object>>, string, string>(Program.commandDeduplicate, "[--delete] <DirectoryBase> <DirectoryToCheck>", "Finds all files in <DirectoryToCheck> and its subdirectories that already exist in <DirectoryBase> (i.e. files in <DirectoryToCheck> that duplicate files in <DirectoryBase>). Will list the files that are found. If --delete is specified they will also be deleted.") },
-			{ "findempty", new Tuple<Action<Dictionary<string, object>>, string, string>(Program.commandFindEmptyDirs, "[--delete] <DirectoryToSearch>", "Searches all directories in <DirectoryToSearch> and its subdirectories for empty directories. If --delete is specified they will also be deleted. A directory is empty if it contains no files in itself or any of its subdirectories. This will only print the upper-most directory if all of its subdirectories are also empty.") },
+			{ "help", new Tuple<Action<Dictionary<string, object>>, string, string>(Program.commandHelp, "<command>",
+				"Gets more detailed help for a specific command and its usage (help <command>).") },
+
+			{ "catalog-create", new Tuple<Action<Dictionary<string, object>>, string, string>(Program.commandCatalogCreate, "<DirectoryToCatalog>",
+				"Catalogs all files in <DirectoryToCatalog> and its subdirectories to create a catalog file. The catalog will be saved as '.kcatalog' in <DirectoryToCatalog>. You will need to recatalog the directory if files are changed. When you recatalog all files are rescanned and the existing .kcatalog is overwritten.") },
+
+			{ "catalog-check", new Tuple<Action<Dictionary<string, object>>, string, string>(Program.commandCatalogCheck, "<CatalogFile>",
+				"Checks all files in the directory of <CatalogFile> and its subdirectories, listing any files that have been added or removed since the catalog was taken. This command does not check file contents or hashes of existing files, it just checks for new/removed files. This only informs you if you need to recatalog (using 'catalog-create').") },
+
+			{ "catalog-compare", new Tuple<Action<Dictionary<string, object>>, string, string>(Program.commandCatalogCompare, "[--delete] <BaseCatalogFile> <OtherCatalogFile>",
+				"Finds all files in <OtherCatalogFile> that are already cataloged by <BaseCatalogFile> (i.e. files in <OtherCatalogFile> that duplicate files in <BaseCatalogFile>). This ignores file paths and file names, it only compares file contents/hashes. This command will list the duplicated files that are found. If --delete is specified the duplicated files will also be deleted from the directory of <OtherCatalogFile>. Be sure both catalogs are up-to-date (using 'catalog-check' and 'catalog-create' as necessary).") },
+
+			{ "dir-search", new Tuple<Action<Dictionary<string, object>>, string, string>(Program.commandDirectorySearch, "[--norecursive] [--delete] <DirectoryToSearch> <FileNamePattern>",
+				"Finds all files in <DirectoryToSearch> and its subdirectories (unless --norecursive is specified) matching <FileNamePattern>. This command will list the files that are found. The pattern is Windows file system pattern matching (not regex). If --delete is specified they will also be deleted. This is useful for purging files like thumbs.db.") },
+
+			{ "dir-findempty", new Tuple<Action<Dictionary<string, object>>, string, string>(Program.commandDirectoryFindEmpty, "[--delete] <DirectoryToSearch>",
+				"Searches all directories in <DirectoryToSearch> and its subdirectories for empty directories. If --delete is specified they will also be deleted. A directory is empty if it contains no files in itself or any of its subdirectories. This will only print the upper-most directory if all of its subdirectories are also empty.") },
 		};
 
 		#endregion Fields
@@ -127,7 +138,7 @@ namespace KCatalog
 					}
 
 					string optionName = allowedOptions[nextOption];
-					if (optionName.StartsWith("Directory", StringComparison.OrdinalIgnoreCase))
+					if (optionName.StartsWith("Directory"))
 					{
 						if (!arg.EndsWith("/", StringComparison.OrdinalIgnoreCase) && !arg.EndsWith("\\", StringComparison.OrdinalIgnoreCase))
 						{
@@ -140,6 +151,17 @@ namespace KCatalog
 						catch (Exception exception)
 						{
 							throw new CommandLineArgumentException($"Directory is not valid ({exception.Message}): {arg}.");
+						}
+					}
+					else if (optionName.EndsWith("File"))
+					{
+						try
+						{
+							arguments.Add(optionName, new FileInfo(arg));
+						}
+						catch (Exception exception)
+						{
+							throw new CommandLineArgumentException($"File is not valid ({exception.Message}): {arg}.");
 						}
 					}
 					else
@@ -177,7 +199,7 @@ namespace KCatalog
 				Console.WriteLine($"{command.Value.Item3}");
 				Console.WriteLine();
 			}
-			Console.WriteLine("All commands accept the --log switch to write their output to a time stamped log file in addition to console output.");
+			Console.WriteLine("All commands accept the --log switch to write their important output to a time stamped log file in addition to console output.");
 			Console.WriteLine($"Type '<command> help' or '<command> ?' for more info.");
 		}
 
@@ -202,12 +224,12 @@ namespace KCatalog
 			}
 		}
 
-		private static void commandCatalog(Dictionary<string, object> arguments)
+		private static void commandCatalogCreate(Dictionary<string, object> arguments)
 		{
 			DirectoryInfo directoryToCatalog = (DirectoryInfo)arguments["DirectoryToCatalog"];
 			if (!directoryToCatalog.Exists) { throw new CommandLineArgumentException("<DirectoryToCatalog>", "Directory does not exist."); }
 
-			Console.Write("Getting files... ");
+			Console.Write("Getting files in catalog directory... ");
 			FileInfo[] foundFiles = directoryToCatalog.GetFiles("*", SearchOption.AllDirectories);
 			Console.WriteLine($"Found {foundFiles.Length} files.");
 
@@ -220,49 +242,99 @@ namespace KCatalog
 				Console.WriteLine($"Overwrite existing catalog? <yes|no>");
 				if (!string.Equals(Console.ReadLine(), "yes", StringComparison.OrdinalIgnoreCase))
 				{
-					Console.WriteLine("Aborting, nothing overwritten.");
+					Console.WriteLine("Aborting, nothing overwritten, nothing cataloged.");
 					return;
 				}
 			}
 
-			Console.WriteLine("Getting hashes...");
+			Console.WriteLine("Cataloging found files...");
 			List<FileHash> fileHashes = Program.getFileHashes(directoryToCatalog, foundFiles, out List<string> errors);
 			Program.saveFileHashes(catalogFile.FullName, fileHashes);
 
-			Console.WriteLine($"Cataloged {foundFiles.Length} files in '{directoryToCatalog.FullName}'.");
+			Program.log($"Cataloged {foundFiles.Length} files in '{directoryToCatalog.FullName}'.");
 			if (errors.Any())
 			{
-				Console.WriteLine($"{errors.Count} errors:");
-				errors.ForEach((error) => Console.WriteLine($"  {error}"));
+				Program.log($"{errors.Count} errors:");
+				errors.ForEach((error) => Program.log($"  {error}"));
 			}
 		}
 
-		private static void commandCheckCatalog(Dictionary<string, object> arguments)
+		private static void commandCatalogCheck(Dictionary<string, object> arguments)
 		{
-			DirectoryInfo directoryToCatalog = (DirectoryInfo)arguments["DirectoryToCatalog"];
-			if (!directoryToCatalog.Exists) { throw new CommandLineArgumentException("<DirectoryToCatalog>", "Directory does not exist."); }
-
-			FileInfo catalogFile = new FileInfo(Path.Combine(directoryToCatalog.FullName, ".kcatalog"));
-			if (!catalogFile.Exists) { throw new CommandLineArgumentException("<DirectoryToCatalog>", "Directory does not contain a catalog file."); }
+			FileInfo catalogFile = (FileInfo)arguments["CatalogFile"];
+			if (!catalogFile.Exists) { throw new CommandLineArgumentException("<CatalogFile>", "Catalog file does not exist."); }
 
 			List<FileHash> catalogFileHashes = Program.loadFileHashes(catalogFile.FullName, out _);
 
-			Console.Write("Getting files... ");
-			Dictionary<string, FileInfo> foundFiles = directoryToCatalog.GetFiles("*", SearchOption.AllDirectories).ToDictionary((file) => file.GetRelativePath(directoryToCatalog), (file) => file, StringComparer.OrdinalIgnoreCase);
+			Console.Write("Getting files in catalog directory... ");
+			DirectoryInfo catalogedDirectory = catalogFile.Directory;
+			Dictionary<string, FileInfo> foundFiles = catalogedDirectory.GetFiles("*", SearchOption.AllDirectories).ToDictionary((file) => file.GetRelativePath(catalogedDirectory), (file) => file, StringComparer.OrdinalIgnoreCase);
 			Console.WriteLine($"Found {foundFiles.Count} files.");
 
 			foreach (FileHash fileHash in catalogFileHashes)
 			{
-				if (!foundFiles.Remove(fileHash.RelativePath)) { Program.log($"Delete: {fileHash.RelativePath}"); }
+				if (!foundFiles.Remove(fileHash.RelativePath)) { Program.log($"Removed: {fileHash.RelativePath}"); }
 			}
 
 			foreach (string leftOverFile in foundFiles.Keys.OrderBy((s) => s))
 			{
-				Program.log($"Added : {leftOverFile}");
+				Program.log($"Added  : {leftOverFile}");
 			}
 		}
 
-		private static void commandFileSearch(Dictionary<string, object> arguments)
+		private static void commandCatalogCompare(Dictionary<string, object> arguments)
+		{
+			bool shouldDelete = arguments.ContainsKey("--delete");
+
+			FileInfo baseCatalogFile = (FileInfo)arguments["BaseCatalogFile"];
+			if (!baseCatalogFile.Exists) { throw new CommandLineArgumentException("<BaseCatalogFile>", "Catalog file does not exist."); }
+			FileInfo otherCatalogFile = (FileInfo)arguments["OtherCatalogFile"];
+			if (!otherCatalogFile.Exists) { throw new CommandLineArgumentException("<OtherCatalogFile>", "Catalog file does not exist."); }
+
+			FileCatalog baseFileCatalog = new FileCatalog(Program.loadFileHashes(baseCatalogFile.FullName, out _));
+			List<FileHash> otherFileHashes = Program.loadFileHashes(otherCatalogFile.FullName, out _);
+
+			List<FileHash> fileHashesToDelete = new List<FileHash>();
+			foreach (FileHash otherFileHash in otherFileHashes)
+			{
+				IList<FileHash> baseFileHashes = baseFileCatalog.Find(otherFileHash.Hash);
+				if (!baseFileHashes.Any()) { continue; }
+
+				// [Todo]: If we found duplicates and we are to delete the files, make sure their hashes are still identical in case one changed
+
+				fileHashesToDelete.Add(otherFileHash);
+				Program.log(otherFileHash.RelativePath);
+			}
+			Program.log($"Found {fileHashesToDelete.Count} files in '{otherCatalogFile}' duplicating those in '{baseCatalogFile}'.");
+
+			if (shouldDelete && fileHashesToDelete.Any())
+			{
+				Console.WriteLine($"Really delete? <yes|no>");
+				if (!string.Equals(Console.ReadLine(), "yes", StringComparison.OrdinalIgnoreCase))
+				{
+					Console.WriteLine("Aborting, nothing deleted.");
+					return;
+				}
+
+				int deletedCount = 0;
+				try
+				{
+					foreach (FileHash fileHash in fileHashesToDelete)
+					{
+						string fullPath = Path.Combine(otherCatalogFile.Directory.FullName, fileHash.RelativePath);
+						File.SetAttributes(fullPath, FileAttributes.Normal);
+						File.Delete(fullPath);
+						deletedCount++;
+					}
+				}
+				finally
+				{
+					Program.log($"Deleted {deletedCount} files.");
+				}
+			}
+		}
+
+		private static void commandDirectorySearch(Dictionary<string, object> arguments)
 		{
 			bool shouldDelete = arguments.ContainsKey("--delete");
 			bool noRecursive = arguments.ContainsKey("--norecursive");
@@ -279,7 +351,7 @@ namespace KCatalog
 				string relativePath = file.GetRelativePath(directoryToSearch);
 				Program.log(relativePath);
 			}
-			Console.WriteLine($"Found {foundFiles.Length} files matching '{fileNamePattern}' in '{directoryToSearch.FullName}'.");
+			Program.log($"Found {foundFiles.Length} files matching '{fileNamePattern}' in '{directoryToSearch.FullName}'.");
 
 			if (shouldDelete && foundFiles.Any())
 			{
@@ -301,71 +373,12 @@ namespace KCatalog
 				}
 				finally
 				{
-					Console.WriteLine($"Deleted {deletedCount} files.");
+					Program.log($"Deleted {deletedCount} files.");
 				}
 			}
 		}
 
-		private static void commandDeduplicate(Dictionary<string, object> arguments)
-		{
-			bool shouldDelete = arguments.ContainsKey("--delete");
-
-			DirectoryInfo directoryBase = (DirectoryInfo)arguments["DirectoryBase"];
-			if (!directoryBase.Exists) { throw new CommandLineArgumentException("<DirectoryBase>", "Directory does not exist."); }
-			DirectoryInfo directoryToCheck = (DirectoryInfo)arguments["DirectoryToCheck"];
-			if (!directoryToCheck.Exists) { throw new CommandLineArgumentException("<DirectoryToCheck>", "Directory does not exist."); }
-
-			FileInfo baseCatalogFile = new FileInfo(Path.Combine(directoryBase.FullName, ".kcatalog"));
-			if (!baseCatalogFile.Exists) { throw new CommandLineArgumentException("<DirectoryBase>", "Directory does not contain a catalog file."); }
-			FileInfo toCheckCatalogFile = new FileInfo(Path.Combine(directoryToCheck.FullName, ".kcatalog"));
-			if (!toCheckCatalogFile.Exists) { throw new CommandLineArgumentException("<DirectoryToCheck>", "Directory does not contain a catalog file."); }
-
-			FileCatalog baseFileCatalog = new FileCatalog(Program.loadFileHashes(baseCatalogFile.FullName, out _));
-			List<FileHash> toCheckFileHashes = Program.loadFileHashes(toCheckCatalogFile.FullName, out _);
-
-			List<FileHash> fileHashesToDelete = new List<FileHash>();
-			foreach (FileHash toCheckFileHash in toCheckFileHashes)
-			{
-				IList<FileHash> baseFileHashes = baseFileCatalog.Find(toCheckFileHash.Hash);
-				if (!baseFileHashes.Any()) { continue; }
-
-				string fullPath = Path.Combine(directoryToCheck.FullName, toCheckFileHash.RelativePath);
-				if (!File.Exists(fullPath)) { continue; }
-
-				// Todo: If we found duplicates, make sure their hashes are still identical and not just stale
-				fileHashesToDelete.Add(toCheckFileHash);
-				Program.log(toCheckFileHash.RelativePath);
-			}
-			Console.WriteLine($"Found {fileHashesToDelete.Count} files in '{directoryToCheck}' duplicating those in '{directoryBase}'.");
-
-			if (shouldDelete && fileHashesToDelete.Any())
-			{
-				Console.WriteLine($"Really delete? <yes|no>");
-				if (!string.Equals(Console.ReadLine(), "yes", StringComparison.OrdinalIgnoreCase))
-				{
-					Console.WriteLine("Aborting, nothing deleted.");
-					return;
-				}
-
-				int deletedCount = 0;
-				try
-				{
-					foreach (FileHash fileHash in fileHashesToDelete)
-					{
-						string fullPath = Path.Combine(directoryToCheck.FullName, fileHash.RelativePath);
-						File.SetAttributes(fullPath, FileAttributes.Normal);
-						File.Delete(fullPath);
-						deletedCount++;
-					}
-				}
-				finally
-				{
-					Console.WriteLine($"Deleted {deletedCount} files.");
-				}
-			}
-		}
-
-		private static void commandFindEmptyDirs(Dictionary<string, object> arguments)
+		private static void commandDirectoryFindEmpty(Dictionary<string, object> arguments)
 		{
 			bool shouldDelete = arguments.ContainsKey("--delete");
 
@@ -390,7 +403,7 @@ namespace KCatalog
 			}
 
 			deleteRecursively(directoryToSearch);
-			Console.WriteLine($"Found {emptyDirectories.Count} empty directories in '{directoryToSearch}'.");
+			Program.log($"Found {emptyDirectories.Count} empty directories in '{directoryToSearch}'.");
 
 			if (shouldDelete && emptyDirectories.Any())
 			{
@@ -412,7 +425,7 @@ namespace KCatalog
 				}
 				finally
 				{
-					Console.WriteLine($"Deleted {deletedCount} empty directories.");
+					Program.log($"Deleted {deletedCount} empty directories.");
 				}
 			}
 		}

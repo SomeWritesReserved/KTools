@@ -46,7 +46,6 @@
     <Compile Include="Source\Library\FileHash.cs" />
     <Compile Include="Source\Library\FileCatalog.cs" />
     <Compile Include="Source\Library\Hash.cs" />
-    <Compile Include="Source\Library\ImageHash.cs" />
     <Compile Include="Source\Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
