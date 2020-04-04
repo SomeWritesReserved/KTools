@@ -229,7 +229,7 @@ namespace KCatalog
 			DirectoryInfo directoryToCatalog = (DirectoryInfo)arguments["DirectoryToCatalog"];
 			if (!directoryToCatalog.Exists) { throw new CommandLineArgumentException("<DirectoryToCatalog>", "Directory does not exist."); }
 
-			Console.Write("Getting files in catalog directory... ");
+			Console.Write("Getting files in directory to catalog... ");
 			FileInfo[] foundFiles = directoryToCatalog.GetFiles("*", SearchOption.AllDirectories);
 			Console.WriteLine($"Found {foundFiles.Length} files.");
 
@@ -237,8 +237,8 @@ namespace KCatalog
 			if (catalogFile.Exists)
 			{
 				Console.WriteLine($"Catalog file already exists: {catalogFile.FullName}");
-				List<FileHash> oldFileHashes = Program.loadFileHashes(catalogFile.FullName, out DateTime dateTime);
-				Console.WriteLine($"It was taken {(DateTime.Now - dateTime).Days} days ago and contains {oldFileHashes.Count} files ({foundFiles.Length - oldFileHashes.Count} difference).");
+				Catalog oldCatalog = Catalog.Read(catalogFile.FullName);
+				Console.WriteLine($"It was taken {(DateTime.Now - oldCatalog.CatalogedOn).Days} days ago and contains {oldCatalog.FileInstances.Count} files ({foundFiles.Length - oldCatalog.FileInstances.Count} difference).");
 				Console.WriteLine($"Overwrite existing catalog? <yes|no>");
 				if (!string.Equals(Console.ReadLine(), "yes", StringComparison.OrdinalIgnoreCase))
 				{
@@ -247,11 +247,11 @@ namespace KCatalog
 				}
 			}
 
-			Console.WriteLine("Cataloging found files...");
-			List<FileHash> fileHashes = Program.getFileHashes(directoryToCatalog, foundFiles, out List<string> errors);
-			Program.saveFileHashes(catalogFile.FullName, fileHashes);
+			Console.WriteLine("Cataloging the files...");
+			Catalog catalog = Program.createCatalogForDirectory(directoryToCatalog, foundFiles, out List<string> errors);
+			catalog.Write(catalogFile.FullName);
 
-			Program.log($"Cataloged {foundFiles.Length} files in '{directoryToCatalog.FullName}'.");
+			Program.log($"Cataloged {catalog.FileInstances.Count} files in '{directoryToCatalog.FullName}'.");
 			if (errors.Any())
 			{
 				Program.log($"{errors.Count} errors:");
@@ -264,16 +264,16 @@ namespace KCatalog
 			FileInfo catalogFile = (FileInfo)arguments["CatalogFile"];
 			if (!catalogFile.Exists) { throw new CommandLineArgumentException("<CatalogFile>", "Catalog file does not exist."); }
 
-			List<FileHash> catalogFileHashes = Program.loadFileHashes(catalogFile.FullName, out _);
+			Catalog catalog = Catalog.Read(catalogFile.FullName);
 
-			Console.Write("Getting files in catalog directory... ");
+			Console.Write("Getting files in cataloged directory... ");
 			DirectoryInfo catalogedDirectory = catalogFile.Directory;
 			Dictionary<string, FileInfo> foundFiles = catalogedDirectory.GetFiles("*", SearchOption.AllDirectories).ToDictionary((file) => file.GetRelativePath(catalogedDirectory), (file) => file, StringComparer.OrdinalIgnoreCase);
 			Console.WriteLine($"Found {foundFiles.Count} files.");
 
-			foreach (FileHash fileHash in catalogFileHashes)
+			foreach (FileInstance fileInstance in catalog.FileInstances)
 			{
-				if (!foundFiles.Remove(fileHash.RelativePath)) { Program.log($"Removed: {fileHash.RelativePath}"); }
+				if (!foundFiles.Remove(fileInstance.RelativePath)) { Program.log($"Removed: {fileInstance.RelativePath}"); }
 			}
 
 			foreach (string leftOverFile in foundFiles.Keys.OrderBy((s) => s))
@@ -291,23 +291,23 @@ namespace KCatalog
 			FileInfo otherCatalogFile = (FileInfo)arguments["OtherCatalogFile"];
 			if (!otherCatalogFile.Exists) { throw new CommandLineArgumentException("<OtherCatalogFile>", "Catalog file does not exist."); }
 
-			FileCatalog baseFileCatalog = new FileCatalog(Program.loadFileHashes(baseCatalogFile.FullName, out _));
-			List<FileHash> otherFileHashes = Program.loadFileHashes(otherCatalogFile.FullName, out _);
+			Catalog baseCatalog = Catalog.Read(baseCatalogFile.FullName);
+			Catalog otherCatalog = Catalog.Read(otherCatalogFile.FullName);
 
-			List<FileHash> fileHashesToDelete = new List<FileHash>();
-			foreach (FileHash otherFileHash in otherFileHashes)
+			List<FileInstance> fileInstancesToDelete = new List<FileInstance>();
+			foreach (FileInstance otherFileInstance in otherCatalog.FileInstances)
 			{
-				IList<FileHash> baseFileHashes = baseFileCatalog.Find(otherFileHash.Hash);
-				if (!baseFileHashes.Any()) { continue; }
+				IReadOnlyList<FileInstance> matchingBaseFileInstances = baseCatalog.Find(otherFileInstance.FileContentsHash);
+				if (!matchingBaseFileInstances.Any()) { continue; }
 
-				// [Todo]: If we found duplicates and we are to delete the files, make sure their hashes are still identical in case one changed
+				// [Todo]: If we found duplicates and we are to delete the files, make sure their hashes are still up-to-date and identical in case the files were edited
 
-				fileHashesToDelete.Add(otherFileHash);
-				Program.log(otherFileHash.RelativePath);
+				fileInstancesToDelete.Add(otherFileInstance);
+				Program.log(otherFileInstance.RelativePath);
 			}
-			Program.log($"Found {fileHashesToDelete.Count} files in '{otherCatalogFile}' duplicating those in '{baseCatalogFile}'.");
+			Program.log($"Found {fileInstancesToDelete.Count} files in '{otherCatalogFile}' duplicating those in '{baseCatalogFile}'.");
 
-			if (shouldDelete && fileHashesToDelete.Any())
+			if (shouldDelete && fileInstancesToDelete.Any())
 			{
 				Console.WriteLine($"Really delete? <yes|no>");
 				if (!string.Equals(Console.ReadLine(), "yes", StringComparison.OrdinalIgnoreCase))
@@ -319,9 +319,9 @@ namespace KCatalog
 				int deletedCount = 0;
 				try
 				{
-					foreach (FileHash fileHash in fileHashesToDelete)
+					foreach (FileInstance fileInstance in fileInstancesToDelete)
 					{
-						string fullPath = Path.Combine(otherCatalogFile.Directory.FullName, fileHash.RelativePath);
+						string fullPath = Path.Combine(otherCatalogFile.Directory.FullName, fileInstance.RelativePath);
 						File.SetAttributes(fullPath, FileAttributes.Normal);
 						File.Delete(fullPath);
 						deletedCount++;
@@ -434,10 +434,13 @@ namespace KCatalog
 
 		#region Helpers
 
-		private static List<FileHash> getFileHashes(DirectoryInfo baseDirectory, FileInfo[] allFiles, out List<string> errors)
+		/// <summary>
+		/// Goes through all files in the <paramref name="baseDirectory"/> and its subdirectories to create a <see cref="Catalog"/>.
+		/// </summary>
+		private static Catalog createCatalogForDirectory(DirectoryInfo baseDirectory, FileInfo[] allFiles, out List<string> errors)
 		{
 			errors = new List<string>();
-			List<FileHash> fileHashes = new List<FileHash>();
+			List<FileInstance> fileInstances = new List<FileInstance>();
 			int fileCount = 0;
 			foreach (FileInfo file in allFiles)
 			{
@@ -447,8 +450,8 @@ namespace KCatalog
 					using (FileStream fileStream = File.OpenRead(file.FullName))
 					{
 						long fileSize = fileStream.Length;
-						Hash hash = Hash.GetFileHash(fileStream);
-						fileHashes.Add(new FileHash(relativePath, fileSize, hash));
+						Hash256 fileContentsHash = Hash256.GetFileContentsHash(fileStream);
+						fileInstances.Add(new FileInstance(relativePath, fileSize, fileContentsHash));
 					}
 				}
 				catch (IOException ioException)
@@ -458,28 +461,7 @@ namespace KCatalog
 				fileCount++;
 				if ((fileCount % 20) == 0) { Console.WriteLine($"{(double)fileCount / allFiles.Length:P}% ({fileCount} / {allFiles.Length})"); }
 			}
-			return fileHashes;
-		}
-
-		private static void saveFileHashes(string path, IEnumerable<FileHash> fileHashes)
-		{
-			new XDocument(
-				new XElement("Catalog",
-					new XElement("Date", DateTime.Now),
-					new XElement("Files",
-						fileHashes.Select((fileHash) => new XElement("f", new XAttribute("p", fileHash.RelativePath), new XAttribute("h", fileHash.Hash), new XAttribute("l", fileHash.FileSize)))
-					)
-				)
-			).Save(path);
-		}
-
-		private static List<FileHash> loadFileHashes(string path, out DateTime dateTime)
-		{
-			XDocument xDocument = XDocument.Load(path);
-			dateTime = DateTime.Parse(xDocument.Element("Catalog").Element("Date").Value);
-			return xDocument.Element("Catalog").Element("Files").Elements("f")
-				.Select((element) => new FileHash(element.Attribute("p").Value, long.Parse(element.Attribute("l").Value), Hash.Parse(element.Attribute("h").Value)))
-				.ToList();
+			return new Catalog(fileInstances, DateTime.Now);
 		}
 
 		#endregion Helpers

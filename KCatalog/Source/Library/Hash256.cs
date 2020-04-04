@@ -9,9 +9,9 @@ using System.Text;
 namespace KCatalog
 {
 	/// <summary>
-	/// Represents a hash of some input data.
+	/// Represents a 256-bit hash of some input data.
 	/// </summary>
-	public struct Hash : IEquatable<Hash>
+	public struct Hash256 : IEquatable<Hash256>
 	{
 		#region Fields
 
@@ -25,7 +25,7 @@ namespace KCatalog
 		#region Constructors
 
 		/// <summary>Constructor.</summary>
-		public Hash(long hashPart1, long hashPart2, long hashPart3, long hashPart4)
+		public Hash256(long hashPart1, long hashPart2, long hashPart3, long hashPart4)
 		{
 			this.hashPart1 = hashPart1;
 			this.hashPart2 = hashPart2;
@@ -34,7 +34,7 @@ namespace KCatalog
 		}
 
 		/// <summary>Constructor.</summary>
-		public Hash(byte[] hashBytes)
+		public Hash256(byte[] hashBytes)
 		{
 			if (hashBytes == null) { throw new ArgumentNullException(nameof(hashBytes)); }
 			if (hashBytes.Length != 32) { throw new ArgumentException($"{nameof(hashBytes)} must be 256 bits."); }
@@ -60,11 +60,11 @@ namespace KCatalog
 
 		public override bool Equals(object obj)
 		{
-			if (!(obj is Hash)) { return false; }
-			return this.Equals((Hash)obj);
+			if (!(obj is Hash256)) { return false; }
+			return this.Equals((Hash256)obj);
 		}
 
-		public bool Equals(Hash other)
+		public bool Equals(Hash256 other)
 		{
 			return (this.hashPart1 == other.hashPart1 &&
 				this.hashPart2 == other.hashPart2 &&
@@ -72,78 +72,55 @@ namespace KCatalog
 				this.hashPart4 == other.hashPart4);
 		}
 
-		#region Helpers
-
-		public static Hash Parse(string s)
+		public static Hash256 Parse(string s)
 		{
-			Hash hash = new Hash();
+			Hash256 hash = new Hash256();
 			if (s.Length != 64) { throw new FormatException("Not a hash"); }
 			if (!long.TryParse(s.Substring(0, 16), NumberStyles.HexNumber, null, out long hashPart1)) { throw new FormatException("Not a hash"); }
 			if (!long.TryParse(s.Substring(16, 16), NumberStyles.HexNumber, null, out long hashPart2)) { throw new FormatException("Not a hash"); }
 			if (!long.TryParse(s.Substring(32, 16), NumberStyles.HexNumber, null, out long hashPart3)) { throw new FormatException("Not a hash"); }
 			if (!long.TryParse(s.Substring(48, 16), NumberStyles.HexNumber, null, out long hashPart4)) { throw new FormatException("Not a hash"); }
-			hash = new Hash(hashPart1, hashPart2, hashPart3, hashPart4);
+			hash = new Hash256(hashPart1, hashPart2, hashPart3, hashPart4);
 			return hash;
 		}
 
-		public static bool TryParse(string s, out Hash hash)
+		public static bool TryParse(string s, out Hash256 hash)
 		{
-			hash = new Hash();
+			hash = new Hash256();
 			if (s.Length != 64) { return false; }
 			if (!long.TryParse(s.Substring(0, 16), NumberStyles.HexNumber, null, out long hashPart1)) { return false; }
 			if (!long.TryParse(s.Substring(16, 16), NumberStyles.HexNumber, null, out long hashPart2)) { return false; }
 			if (!long.TryParse(s.Substring(32, 16), NumberStyles.HexNumber, null, out long hashPart3)) { return false; }
 			if (!long.TryParse(s.Substring(48, 16), NumberStyles.HexNumber, null, out long hashPart4)) { return false; }
-			hash = new Hash(hashPart1, hashPart2, hashPart3, hashPart4);
+			hash = new Hash256(hashPart1, hashPart2, hashPart3, hashPart4);
 			return true;
 		}
 
 		/// <summary>
 		/// Gets the hash of a given file's contents.
 		/// </summary>
-		public static Hash GetFileHash(string file)
+		public static Hash256 GetFileContentsHash(string file)
 		{
 			using (FileStream fileStream = File.OpenRead(file))
 			{
-				return Hash.GetFileHash(fileStream);
+				return Hash256.GetFileContentsHash(fileStream);
 			}
 		}
 
 		/// <summary>
 		/// Gets the hash of a given file's contents.
 		/// </summary>
-		public static Hash GetFileHash(FileStream fileStream)
+		public static Hash256 GetFileContentsHash(FileStream fileStream)
 		{
 			using (BufferedStream stream = new BufferedStream(fileStream, 1200000))
 			{
 				using (SHA256Managed sha = new SHA256Managed())
 				{
 					byte[] hashBytes = sha.ComputeHash(stream);
-					return new Hash(hashBytes);
+					return new Hash256(hashBytes);
 				}
 			}
 		}
-
-		/// <summary>
-		/// Write a hash value to a <see cref="BinaryWriter"/>.
-		/// </summary>
-		public static void Write(Hash hash, BinaryWriter binaryWriter)
-		{
-			binaryWriter.Write(hash.hashPart1);
-			binaryWriter.Write(hash.hashPart2);
-			binaryWriter.Write(hash.hashPart3);
-			binaryWriter.Write(hash.hashPart4);
-		}
-
-		/// <summary>
-		/// Reads a hash value from a <see cref="BinaryReader"/>
-		/// </summary>
-		public static Hash Read(BinaryReader binaryReader)
-		{
-			return new Hash(binaryReader.ReadInt64(), binaryReader.ReadInt64(), binaryReader.ReadInt64(), binaryReader.ReadInt64());
-		}
-
-		#endregion Helpers
 
 		#endregion Methods
 	}

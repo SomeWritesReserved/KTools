@@ -43,9 +43,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Source\Library\FileHash.cs" />
-    <Compile Include="Source\Library\FileCatalog.cs" />
-    <Compile Include="Source\Library\Hash.cs" />
+    <Compile Include="Source\Library\Catalog.cs" />
+    <Compile Include="Source\Library\FileInstance.cs" />
+    <Compile Include="Source\Library\Hash256.cs" />
     <Compile Include="Source\Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
