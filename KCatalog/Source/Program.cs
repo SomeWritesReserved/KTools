@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
+using System.IO.Abstractions;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -48,42 +48,7 @@ namespace KCatalog
 		{
 			try
 			{
-				if (args.Length > 0)
-				{
-					string commandName = args[0];
-					if (Program.commands.ContainsKey(commandName))
-					{
-						try
-						{
-							string[] commandArgs = args.Skip(1).ToArray();
-							string[] commandArgsNoLog = commandArgs.Where((c) => !c.Equals("--log", StringComparison.OrdinalIgnoreCase)).ToArray();
-							if (!commandArgs.SequenceEqual(commandArgsNoLog))
-							{
-								Program.logFileName = DateTime.Now.ToString("yyyy-MM-dd_hh-mmtt") + $"_{commandName}.log";
-								Program.log(string.Join(" ", args.Select((arg) => $"\"{arg}\"")));
-							}
-							Dictionary<string, object> parsedArguments = Program.parseArguments(commandArgsNoLog, Program.commands[commandName].Item2);
-							Program.commands[commandName].Item1.Invoke(parsedArguments);
-						}
-						catch (CommandLineArgumentException commandLineArgumentException)
-						{
-							Console.WriteLine("Invalid command line arguments:");
-							Console.WriteLine($"  {commandLineArgumentException.Message}");
-							Console.WriteLine();
-							Console.Write("Usage: ");
-							Program.commandHelp(new Dictionary<string, object>() { { "command", commandName } });
-						}
-					}
-					else
-					{
-						Console.Write($"Unknown command '{commandName}'. ");
-						Program.showHelp();
-					}
-				}
-				else
-				{
-					Program.showHelp();
-				}
+				Program.run(args, new FileSystem());
 			}
 			catch (Exception exception)
 			{
@@ -98,7 +63,47 @@ namespace KCatalog
 			}
 		}
 
-		private static Dictionary<string, object> parseArguments(string[] args, string format)
+		private static void run(string[] args, IFileSystem fileSystem)
+		{
+			if (args.Length > 0)
+			{
+				string commandName = args[0];
+				if (Program.commands.ContainsKey(commandName))
+				{
+					try
+					{
+						string[] commandArgs = args.Skip(1).ToArray();
+						string[] commandArgsNoLog = commandArgs.Where((c) => !c.Equals("--log", StringComparison.OrdinalIgnoreCase)).ToArray();
+						if (!commandArgs.SequenceEqual(commandArgsNoLog))
+						{
+							Program.logFileName = DateTime.Now.ToString("yyyy-MM-dd_hh-mmtt") + $"_{commandName}.log";
+							Program.log(string.Join(" ", args.Select((arg) => $"\"{arg}\"")));
+						}
+						Dictionary<string, object> parsedArguments = Program.parseArguments(fileSystem, commandArgsNoLog, Program.commands[commandName].Item2);
+						Program.commands[commandName].Item1.Invoke(parsedArguments);
+					}
+					catch (CommandLineArgumentException commandLineArgumentException)
+					{
+						Console.WriteLine("Invalid command line arguments:");
+						Console.WriteLine($"  {commandLineArgumentException.Message}");
+						Console.WriteLine();
+						Console.Write("Usage: ");
+						Program.commandHelp(new Dictionary<string, object>() { { "command", commandName } });
+					}
+				}
+				else
+				{
+					Console.Write($"Unknown command '{commandName}'. ");
+					Program.showHelp();
+				}
+			}
+			else
+			{
+				Program.showHelp();
+			}
+		}
+
+		private static Dictionary<string, object> parseArguments(IFileSystem fileSystem, string[] args, string format)
 		{
 			Regex switchRegex = new Regex(@"\[(--[a-zA-Z0-9]+?)\]");
 			Regex argumentRegex = new Regex(@"<([a-zA-Z0-9]+?)>");
@@ -146,7 +151,7 @@ namespace KCatalog
 						}
 						try
 						{
-							arguments.Add(optionName, new DirectoryInfo(arg));
+							arguments.Add(optionName, fileSystem.DirectoryInfo.FromDirectoryName(arg));
 						}
 						catch (Exception exception)
 						{
@@ -157,7 +162,7 @@ namespace KCatalog
 					{
 						try
 						{
-							arguments.Add(optionName, new FileInfo(arg));
+							arguments.Add(optionName, fileSystem.FileInfo.FromFileName(arg));
 						}
 						catch (Exception exception)
 						{
@@ -185,7 +190,7 @@ namespace KCatalog
 			Console.WriteLine(message);
 			if (Program.logFileName != null)
 			{
-				File.AppendAllLines(Program.logFileName, new string[] { message });
+				System.IO.File.AppendAllLines(Program.logFileName, new string[] { message });
 			}
 		}
 
@@ -195,7 +200,8 @@ namespace KCatalog
 			Console.WriteLine();
 			foreach (var command in Program.commands)
 			{
-				Console.WriteLine($"-{command.Key}-");
+				Console.WriteLine($"{command.Key}");
+				Console.WriteLine(new string('-', command.Key.Length));
 				Console.WriteLine($"{command.Value.Item3}");
 				Console.WriteLine();
 			}
@@ -226,18 +232,18 @@ namespace KCatalog
 
 		private static void commandCatalogCreate(Dictionary<string, object> arguments)
 		{
-			DirectoryInfo directoryToCatalog = (DirectoryInfo)arguments["DirectoryToCatalog"];
+			IDirectoryInfo directoryToCatalog = (IDirectoryInfo)arguments["DirectoryToCatalog"];
 			if (!directoryToCatalog.Exists) { throw new CommandLineArgumentException("<DirectoryToCatalog>", "Directory does not exist."); }
 
 			Console.Write("Getting files in directory to catalog... ");
-			FileInfo[] foundFiles = directoryToCatalog.GetFiles("*", SearchOption.AllDirectories);
+			IFileInfo[] foundFiles = directoryToCatalog.GetFiles("*", System.IO.SearchOption.AllDirectories);
 			Console.WriteLine($"Found {foundFiles.Length} files.");
 
-			FileInfo catalogFile = new FileInfo(Path.Combine(directoryToCatalog.FullName, ".kcatalog"));
+			IFileInfo catalogFile = directoryToCatalog.FileSystem.FileInfo.FromFileName(directoryToCatalog.FileSystem.Path.Combine(directoryToCatalog.FullName, ".kcatalog"));
 			if (catalogFile.Exists)
 			{
 				Console.WriteLine($"Catalog file already exists: {catalogFile.FullName}");
-				Catalog oldCatalog = Catalog.Read(catalogFile.FullName);
+				Catalog oldCatalog = Catalog.Read(catalogFile);
 				Console.WriteLine($"It was taken {(DateTime.Now - oldCatalog.CatalogedOn).Days} days ago and contains {oldCatalog.FileInstances.Count} files ({foundFiles.Length - oldCatalog.FileInstances.Count} difference).");
 				Console.WriteLine($"Overwrite existing catalog? <yes|no>");
 				if (!string.Equals(Console.ReadLine(), "yes", StringComparison.OrdinalIgnoreCase))
@@ -249,7 +255,7 @@ namespace KCatalog
 
 			Console.WriteLine("Cataloging the files...");
 			Catalog catalog = Program.createCatalogForDirectory(directoryToCatalog, foundFiles, out List<string> errors);
-			catalog.Write(catalogFile.FullName);
+			catalog.Write(catalogFile);
 
 			Program.log($"Cataloged {catalog.FileInstances.Count} files in '{directoryToCatalog.FullName}'.");
 			if (errors.Any())
@@ -261,14 +267,14 @@ namespace KCatalog
 
 		private static void commandCatalogCheck(Dictionary<string, object> arguments)
 		{
-			FileInfo catalogFile = (FileInfo)arguments["CatalogFile"];
+			IFileInfo catalogFile = (IFileInfo)arguments["CatalogFile"];
 			if (!catalogFile.Exists) { throw new CommandLineArgumentException("<CatalogFile>", "Catalog file does not exist."); }
 
-			Catalog catalog = Catalog.Read(catalogFile.FullName);
+			Catalog catalog = Catalog.Read(catalogFile);
 
 			Console.Write("Getting files in cataloged directory... ");
-			DirectoryInfo catalogedDirectory = catalogFile.Directory;
-			Dictionary<string, FileInfo> foundFiles = catalogedDirectory.GetFiles("*", SearchOption.AllDirectories).ToDictionary((file) => file.GetRelativePath(catalogedDirectory), (file) => file, StringComparer.OrdinalIgnoreCase);
+			IDirectoryInfo catalogedDirectory = catalogFile.Directory;
+			Dictionary<string, IFileInfo> foundFiles = catalogedDirectory.GetFiles("*", System.IO.SearchOption.AllDirectories).ToDictionary((file) => file.GetRelativePath(catalogedDirectory), (file) => file, StringComparer.OrdinalIgnoreCase);
 			Console.WriteLine($"Found {foundFiles.Count} files.");
 
 			foreach (FileInstance fileInstance in catalog.FileInstances)
@@ -286,13 +292,13 @@ namespace KCatalog
 		{
 			bool shouldDelete = arguments.ContainsKey("--delete");
 
-			FileInfo baseCatalogFile = (FileInfo)arguments["BaseCatalogFile"];
+			IFileInfo baseCatalogFile = (IFileInfo)arguments["BaseCatalogFile"];
 			if (!baseCatalogFile.Exists) { throw new CommandLineArgumentException("<BaseCatalogFile>", "Catalog file does not exist."); }
-			FileInfo otherCatalogFile = (FileInfo)arguments["OtherCatalogFile"];
+			IFileInfo otherCatalogFile = (IFileInfo)arguments["OtherCatalogFile"];
 			if (!otherCatalogFile.Exists) { throw new CommandLineArgumentException("<OtherCatalogFile>", "Catalog file does not exist."); }
 
-			Catalog baseCatalog = Catalog.Read(baseCatalogFile.FullName);
-			Catalog otherCatalog = Catalog.Read(otherCatalogFile.FullName);
+			Catalog baseCatalog = Catalog.Read(baseCatalogFile);
+			Catalog otherCatalog = Catalog.Read(otherCatalogFile);
 
 			List<FileInstance> fileInstancesToDelete = new List<FileInstance>();
 			foreach (FileInstance otherFileInstance in otherCatalog.FileInstances)
@@ -321,9 +327,10 @@ namespace KCatalog
 				{
 					foreach (FileInstance fileInstance in fileInstancesToDelete)
 					{
-						string fullPath = Path.Combine(otherCatalogFile.Directory.FullName, fileInstance.RelativePath);
-						File.SetAttributes(fullPath, FileAttributes.Normal);
-						File.Delete(fullPath);
+						string fullPath = otherCatalogFile.FileSystem.Path.Combine(otherCatalogFile.Directory.FullName, fileInstance.RelativePath);
+						IFileInfo fileInfo = otherCatalogFile.FileSystem.FileInfo.FromFileName(fullPath);
+						fileInfo.Attributes = System.IO.FileAttributes.Normal;
+						fileInfo.Delete();
 						deletedCount++;
 					}
 				}
@@ -340,13 +347,13 @@ namespace KCatalog
 			bool noRecursive = arguments.ContainsKey("--norecursive");
 
 			string fileNamePattern = (string)arguments["FileNamePattern"];
-			DirectoryInfo directoryToSearch = (DirectoryInfo)arguments["DirectoryToSearch"];
+			IDirectoryInfo directoryToSearch = (IDirectoryInfo)arguments["DirectoryToSearch"];
 			if (!directoryToSearch.Exists) { throw new CommandLineArgumentException("<DirectoryToSearch>", "Directory does not exist."); }
 
-			SearchOption searchOption = noRecursive ? SearchOption.TopDirectoryOnly : SearchOption.AllDirectories;
-			FileInfo[] foundFiles = directoryToSearch.GetFiles(fileNamePattern, searchOption);
+			System.IO.SearchOption searchOption = noRecursive ? System.IO.SearchOption.TopDirectoryOnly : System.IO.SearchOption.AllDirectories;
+			IFileInfo[] foundFiles = directoryToSearch.GetFiles(fileNamePattern, searchOption);
 
-			foreach (FileInfo file in foundFiles)
+			foreach (IFileInfo file in foundFiles)
 			{
 				string relativePath = file.GetRelativePath(directoryToSearch);
 				Program.log(relativePath);
@@ -365,7 +372,7 @@ namespace KCatalog
 				int deletedCount = 0;
 				try
 				{
-					foreach (FileInfo file in foundFiles)
+					foreach (IFileInfo file in foundFiles)
 					{
 						file.Delete();
 						deletedCount++;
@@ -382,20 +389,20 @@ namespace KCatalog
 		{
 			bool shouldDelete = arguments.ContainsKey("--delete");
 
-			DirectoryInfo directoryToSearch = (DirectoryInfo)arguments["DirectoryToSearch"];
+			IDirectoryInfo directoryToSearch = (IDirectoryInfo)arguments["DirectoryToSearch"];
 			if (!directoryToSearch.Exists) { throw new CommandLineArgumentException("<DirectoryToSearch>", "Directory does not exist."); }
 
-			List<DirectoryInfo> emptyDirectories = new List<DirectoryInfo>();
-			void deleteRecursively(DirectoryInfo directoryInfo)
+			List<IDirectoryInfo> emptyDirectories = new List<IDirectoryInfo>();
+			void deleteRecursively(IDirectoryInfo directoryInfo)
 			{
-				if (!directoryInfo.GetFiles("*", SearchOption.AllDirectories).Any())
+				if (!directoryInfo.GetFiles("*", System.IO.SearchOption.AllDirectories).Any())
 				{
 					emptyDirectories.Add(directoryInfo);
 					Program.log(directoryInfo.GetRelativePath(directoryToSearch));
 				}
 				else
 				{
-					foreach (DirectoryInfo subDirectoryInfo in directoryInfo.GetDirectories("*", SearchOption.TopDirectoryOnly))
+					foreach (IDirectoryInfo subDirectoryInfo in directoryInfo.GetDirectories("*", System.IO.SearchOption.TopDirectoryOnly))
 					{
 						deleteRecursively(subDirectoryInfo);
 					}
@@ -417,7 +424,7 @@ namespace KCatalog
 				int deletedCount = 0;
 				try
 				{
-					foreach (DirectoryInfo directoryInfo in emptyDirectories)
+					foreach (IDirectoryInfo directoryInfo in emptyDirectories)
 					{
 						directoryInfo.Delete(recursive: true);
 						deletedCount++;
@@ -437,24 +444,24 @@ namespace KCatalog
 		/// <summary>
 		/// Goes through all files in the <paramref name="baseDirectory"/> and its subdirectories to create a <see cref="Catalog"/>.
 		/// </summary>
-		private static Catalog createCatalogForDirectory(DirectoryInfo baseDirectory, FileInfo[] allFiles, out List<string> errors)
+		private static Catalog createCatalogForDirectory(IDirectoryInfo baseDirectory, IFileInfo[] allFiles, out List<string> errors)
 		{
 			errors = new List<string>();
 			List<FileInstance> fileInstances = new List<FileInstance>();
 			int fileCount = 0;
-			foreach (FileInfo file in allFiles)
+			foreach (IFileInfo file in allFiles)
 			{
 				string relativePath = file.GetRelativePath(baseDirectory);
 				try
 				{
-					using (FileStream fileStream = File.OpenRead(file.FullName))
+					using (System.IO.Stream stream = file.OpenRead())
 					{
-						long fileSize = fileStream.Length;
-						Hash256 fileContentsHash = Hash256.GetFileContentsHash(fileStream);
+						long fileSize = stream.Length;
+						Hash256 fileContentsHash = Hash256.GetContentsHash(stream);
 						fileInstances.Add(new FileInstance(relativePath, fileSize, fileContentsHash));
 					}
 				}
-				catch (IOException ioException)
+				catch (System.IO.IOException ioException)
 				{
 					errors.Add($"Couldn't read ({ioException.Message}): {relativePath}");
 				}
@@ -473,9 +480,14 @@ namespace KCatalog
 	{
 		#region Methods
 
-		public static string GetRelativePath(this FileSystemInfo fileOrDirectory, DirectoryInfo baseDirectoryInfo)
+		public static string GetRelativePath(this IFileSystemInfo fileOrDirectory, IDirectoryInfo baseDirectoryInfo)
 		{
-			return fileOrDirectory.FullName.Substring(baseDirectoryInfo.FullName.Length);
+			string relativePath = fileOrDirectory.FullName.Substring(baseDirectoryInfo.FullName.Length);
+			if (relativePath.StartsWith("/") || relativePath.StartsWith("\\"))
+			{
+				relativePath = relativePath.Substring(1);
+			}
+			return relativePath;
 		}
 
 		#endregion Methods

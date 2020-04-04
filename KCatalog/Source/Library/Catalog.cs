@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO.Abstractions;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -73,27 +74,33 @@ namespace KCatalog
 			}
 		}
 
-		public void Write(string fileName)
+		public void Write(IFileInfo fileInfo)
 		{
-			new XDocument(
-				new XElement("Catalog",
-					new XElement("FileFormatVersion", Catalog.fileFormatVersion),
-					new XElement("Date", DateTime.Now),
-					new XElement("Files",
-						this.FileInstances.Select((fileInstance) => new XElement("f", new XAttribute("p", fileInstance.RelativePath), new XAttribute("h", fileInstance.FileContentsHash), new XAttribute("l", fileInstance.FileSize)))
+			using (System.IO.Stream stream = fileInfo.Open(System.IO.FileMode.Create, System.IO.FileAccess.Write))
+			{
+				new XDocument(
+					new XElement("Catalog",
+						new XElement("FileFormatVersion", Catalog.fileFormatVersion),
+						new XElement("Date", DateTime.Now),
+						new XElement("Files",
+							this.FileInstances.Select((fileInstance) => new XElement("f", new XAttribute("p", fileInstance.RelativePath), new XAttribute("h", fileInstance.FileContentsHash), new XAttribute("l", fileInstance.FileSize)))
+						)
 					)
-				)
-			).Save(fileName);
+				).Save(stream);
+			}
 		}
 
-		public static Catalog Read(string fileName)
+		public static Catalog Read(IFileInfo fileInfo)
 		{
-			XDocument xDocument = XDocument.Load(fileName);
-			DateTime catalogedOn = DateTime.Parse(xDocument.Element("Catalog").Element("Date").Value);
-			List<FileInstance> fileInstances = xDocument.Element("Catalog").Element("Files").Elements("f")
-				.Select((element) => new FileInstance(element.Attribute("p").Value, long.Parse(element.Attribute("l").Value), Hash256.Parse(element.Attribute("h").Value)))
-				.ToList();
-			return new Catalog(fileInstances, catalogedOn);
+			using (System.IO.Stream stream = fileInfo.Open(System.IO.FileMode.Open, System.IO.FileAccess.Read))
+			{
+				XDocument xDocument = XDocument.Load(stream);
+				DateTime catalogedOn = DateTime.Parse(xDocument.Element("Catalog").Element("Date").Value);
+				List<FileInstance> fileInstances = xDocument.Element("Catalog").Element("Files").Elements("f")
+					.Select((element) => new FileInstance(element.Attribute("p").Value, long.Parse(element.Attribute("l").Value), Hash256.Parse(element.Attribute("h").Value)))
+					.ToList();
+				return new Catalog(fileInstances, catalogedOn);
+			}
 		}
 
 		#endregion Methods

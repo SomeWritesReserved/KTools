@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
@@ -97,26 +96,15 @@ namespace KCatalog
 		}
 
 		/// <summary>
-		/// Gets the hash of a given file's contents.
+		/// Gets the hash of a given stream's contents.
 		/// </summary>
-		public static Hash256 GetFileContentsHash(string file)
+		public static Hash256 GetContentsHash(System.IO.Stream stream)
 		{
-			using (FileStream fileStream = File.OpenRead(file))
-			{
-				return Hash256.GetFileContentsHash(fileStream);
-			}
-		}
-
-		/// <summary>
-		/// Gets the hash of a given file's contents.
-		/// </summary>
-		public static Hash256 GetFileContentsHash(FileStream fileStream)
-		{
-			using (BufferedStream stream = new BufferedStream(fileStream, 1200000))
+			using (System.IO.BufferedStream bufferedStream = new System.IO.BufferedStream(stream, 1200000))
 			{
 				using (SHA256Managed sha = new SHA256Managed())
 				{
-					byte[] hashBytes = sha.ComputeHash(stream);
+					byte[] hashBytes = sha.ComputeHash(bufferedStream);
 					return new Hash256(hashBytes);
 				}
 			}
