@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.IO.Abstractions;
 using System.Linq;
 using System.Text;
@@ -17,28 +18,19 @@ namespace KCatalog
 
 		private static readonly Version fileFormatVersion = new Version(1, 1);
 
-		private readonly Dictionary<Hash256, List<FileInstance>> fileInstancesByHash = new Dictionary<Hash256, List<FileInstance>>();
-
 		#endregion Fields
 
 		#region Constructors
 
-		public Catalog(IEnumerable<FileInstance> fileInstances, DateTime catalogedOn)
+		public Catalog(string baseDirectoryPath, DateTime catalogedOn, IEnumerable<FileInstance> fileInstances)
 		{
-			this.FileInstances = fileInstances.ToList().AsReadOnly();
+			this.BaseDirectoryPath = baseDirectoryPath;
 			this.CatalogedOn = catalogedOn;
+			this.FileInstances = fileInstances.ToList().AsReadOnly();
 
-			foreach (FileInstance fileInstance in this.FileInstances)
-			{
-				if (this.fileInstancesByHash.ContainsKey(fileInstance.FileContentsHash))
-				{
-					this.fileInstancesByHash[fileInstance.FileContentsHash].Add(fileInstance);
-				}
-				else
-				{
-					this.fileInstancesByHash.Add(fileInstance.FileContentsHash, new List<FileInstance>() { fileInstance });
-				}
-			}
+			this.FileInstancesByPath = fileInstances.ToDictionary((fileInstance) => fileInstance.RelativePath, (fileInstance) => fileInstance);
+			this.FileInstancesByHash = this.FileInstances.GroupBy((fileInstance) => fileInstance.FileContentsHash)
+				.ToDictionary((group) => group.Key, (group) => (IReadOnlyList<FileInstance>)group.ToList().AsReadOnly());
 		}
 
 		#endregion Constructors
@@ -46,14 +38,30 @@ namespace KCatalog
 		#region Properties
 
 		/// <summary>
-		/// Gets the collection of files that have been cataloged.
+		/// Gets the base directory where this catalog was taken.
 		/// </summary>
-		public IReadOnlyList<FileInstance> FileInstances { get; }
+		public string BaseDirectoryPath { get; }
 
 		/// <summary>
 		/// Gets the date and time the catalog was taken on.
 		/// </summary>
 		public DateTime CatalogedOn { get; }
+
+		/// <summary>
+		/// Gets the collection of all files that have been cataloged.
+		/// </summary>
+		public IReadOnlyList<FileInstance> FileInstances { get; }
+
+		/// <summary>
+		/// Gets the collection of all files that have been cataloged, keyed by their relative file paths.
+		/// </summary>
+		public IReadOnlyDictionary<string, FileInstance> FileInstancesByPath { get; }
+
+		/// <summary>
+		/// Gets the collection of all files that have been cataloged, keyed by their file content hashes. Several files may have the same content
+		/// thus the value of this dictionary is a list of files for the same file content hash.
+		/// </summary>
+		public IReadOnlyDictionary<Hash256, IReadOnlyList<FileInstance>> FileInstancesByHash { get; }
 
 		#endregion Properties
 
@@ -62,11 +70,11 @@ namespace KCatalog
 		/// <summary>
 		/// Returns the list of files in this catalog that have the specified file contents hash, or an empty list of there are no files with that hash.
 		/// </summary>
-		public IReadOnlyList<FileInstance> Find(Hash256 fileContentsHash)
+		public IReadOnlyList<FileInstance> FindFiles(Hash256 fileContentsHash)
 		{
-			if (this.fileInstancesByHash.ContainsKey(fileContentsHash))
+			if (this.FileInstancesByHash.ContainsKey(fileContentsHash))
 			{
-				return this.fileInstancesByHash[fileContentsHash].ToList().AsReadOnly();
+				return this.FileInstancesByHash[fileContentsHash];
 			}
 			else
 			{
@@ -81,6 +89,8 @@ namespace KCatalog
 				new XDocument(
 					new XElement("Catalog",
 						new XElement("FileFormatVersion", Catalog.fileFormatVersion),
+						new XElement("SoftwareVersion", System.Reflection.Assembly.GetExecutingAssembly().GetName().Version),
+						new XElement("BaseDirectoryPath", this.BaseDirectoryPath),
 						new XElement("Date", DateTime.Now),
 						new XElement("Files",
 							this.FileInstances.Select((fileInstance) => new XElement("f", new XAttribute("p", fileInstance.RelativePath), new XAttribute("h", fileInstance.FileContentsHash), new XAttribute("l", fileInstance.FileSize)))
@@ -95,11 +105,12 @@ namespace KCatalog
 			using (System.IO.Stream stream = fileInfo.Open(System.IO.FileMode.Open, System.IO.FileAccess.Read))
 			{
 				XDocument xDocument = XDocument.Load(stream);
-				DateTime catalogedOn = DateTime.Parse(xDocument.Element("Catalog").Element("Date").Value);
+				string baseDirectoryPath = (string)xDocument.Element("Catalog").Element("BaseDirectoryPath");
+				DateTime catalogedOn = (DateTime)xDocument.Element("Catalog").Element("Date");
 				List<FileInstance> fileInstances = xDocument.Element("Catalog").Element("Files").Elements("f")
-					.Select((element) => new FileInstance(element.Attribute("p").Value, long.Parse(element.Attribute("l").Value), Hash256.Parse(element.Attribute("h").Value)))
+					.Select((element) => new FileInstance(element.Attribute("p").Value, (long)element.Attribute("l"), Hash256.Parse(element.Attribute("h").Value)))
 					.ToList();
-				return new Catalog(fileInstances, catalogedOn);
+				return new Catalog(baseDirectoryPath, catalogedOn, fileInstances);
 			}
 		}
 

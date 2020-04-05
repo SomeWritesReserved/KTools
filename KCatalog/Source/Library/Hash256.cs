@@ -49,7 +49,7 @@ namespace KCatalog
 
 		public override string ToString()
 		{
-			return $"{this.hashPart1:x16}{this.hashPart2:x16}{this.hashPart3:x16}{this.hashPart4:x16}";
+			return string.Format(CultureInfo.InvariantCulture, "{0:x16}{1:x16}{2:x16}{3:x16}", this.hashPart1, this.hashPart2, this.hashPart3, this.hashPart4);
 		}
 
 		public override int GetHashCode()
@@ -75,10 +75,10 @@ namespace KCatalog
 		{
 			Hash256 hash = new Hash256();
 			if (s.Length != 64) { throw new FormatException("Not a hash"); }
-			if (!long.TryParse(s.Substring(0, 16), NumberStyles.HexNumber, null, out long hashPart1)) { throw new FormatException("Not a hash"); }
-			if (!long.TryParse(s.Substring(16, 16), NumberStyles.HexNumber, null, out long hashPart2)) { throw new FormatException("Not a hash"); }
-			if (!long.TryParse(s.Substring(32, 16), NumberStyles.HexNumber, null, out long hashPart3)) { throw new FormatException("Not a hash"); }
-			if (!long.TryParse(s.Substring(48, 16), NumberStyles.HexNumber, null, out long hashPart4)) { throw new FormatException("Not a hash"); }
+			if (!long.TryParse(s.Substring(0, 16), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out long hashPart1)) { throw new FormatException("Not a hash"); }
+			if (!long.TryParse(s.Substring(16, 16), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out long hashPart2)) { throw new FormatException("Not a hash"); }
+			if (!long.TryParse(s.Substring(32, 16), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out long hashPart3)) { throw new FormatException("Not a hash"); }
+			if (!long.TryParse(s.Substring(48, 16), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out long hashPart4)) { throw new FormatException("Not a hash"); }
 			hash = new Hash256(hashPart1, hashPart2, hashPart3, hashPart4);
 			return hash;
 		}
@@ -87,10 +87,10 @@ namespace KCatalog
 		{
 			hash = new Hash256();
 			if (s.Length != 64) { return false; }
-			if (!long.TryParse(s.Substring(0, 16), NumberStyles.HexNumber, null, out long hashPart1)) { return false; }
-			if (!long.TryParse(s.Substring(16, 16), NumberStyles.HexNumber, null, out long hashPart2)) { return false; }
-			if (!long.TryParse(s.Substring(32, 16), NumberStyles.HexNumber, null, out long hashPart3)) { return false; }
-			if (!long.TryParse(s.Substring(48, 16), NumberStyles.HexNumber, null, out long hashPart4)) { return false; }
+			if (!long.TryParse(s.Substring(0, 16), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out long hashPart1)) { return false; }
+			if (!long.TryParse(s.Substring(16, 16), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out long hashPart2)) { return false; }
+			if (!long.TryParse(s.Substring(32, 16), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out long hashPart3)) { return false; }
+			if (!long.TryParse(s.Substring(48, 16), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out long hashPart4)) { return false; }
 			hash = new Hash256(hashPart1, hashPart2, hashPart3, hashPart4);
 			return true;
 		}
