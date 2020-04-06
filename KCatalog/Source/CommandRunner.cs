@@ -24,7 +24,6 @@ namespace KCatalog
 		private readonly System.IO.TextReader inputReader;
 		private string logFileName;
 
-		private readonly IReadOnlyList<string> helpSwitches = new List<string>() { "help", "?", "-h", "--help" };
 		private readonly Dictionary<string, Tuple<Action<Dictionary<string, object>>, string, string>> commands;
 
 		#endregion Fields
@@ -200,24 +199,31 @@ namespace KCatalog
 		private void showHelp()
 		{
 			this.outputWriter.WriteLine($"Available commands are:");
+			this.outputWriter.Write("  ");
+			this.outputWriter.WriteLine(string.Join(", ", this.commands.Select((command) => command.Key)));
 			this.outputWriter.WriteLine();
-			foreach (var command in this.commands)
-			{
-				this.outputWriter.WriteLine($"{command.Key}");
-				this.outputWriter.WriteLine(new string('-', command.Key.Length));
-				this.outputWriter.WriteLine($"{command.Value.Item3}");
-				this.outputWriter.WriteLine();
-			}
+			this.outputWriter.WriteLine("Typically you create a catalog of a directory using 'catalog-create', check to see if it needs updated with 'catalog-check', then recreate the catalog as-needed by doing 'catalog-create' again. " +
+				"You can detect duplicate files between two folders by creating catalogs in both with 'catalog-create' and then doing 'catalog-compare'.");
+			this.outputWriter.WriteLine();
 			this.outputWriter.WriteLine("All commands accept the --log switch to write their important output to a time stamped log file in addition to standard output.");
-			this.outputWriter.WriteLine($"Type '<command> help' or '<command> ?' for more info.");
 		}
 
 		private void commandHelp(Dictionary<string, object> arguments)
 		{
 			string commandName = (string)arguments["command"];
-			if (this.commands.ContainsKey(commandName))
+			if (commandName.Equals("all", StringComparison.OrdinalIgnoreCase))
 			{
-				this.outputWriter.WriteLine($"  {commandName} [--log] {this.commands[commandName].Item2}");
+				foreach (var command in this.commands)
+				{
+					this.outputWriter.WriteLine($"{command.Key}");
+					this.outputWriter.WriteLine(new string('-', command.Key.Length));
+					this.outputWriter.WriteLine($"{command.Value.Item3}");
+					this.outputWriter.WriteLine();
+				}
+			}
+			else if (this.commands.ContainsKey(commandName))
+			{
+				this.outputWriter.WriteLine($"{commandName} [--log] {this.commands[commandName].Item2}");
 				this.outputWriter.WriteLine();
 				this.outputWriter.Write(this.commands[commandName].Item3);
 				this.outputWriter.WriteLine(" If --log is specified the command will write output to a time stamped log file in addition to standard output.");
