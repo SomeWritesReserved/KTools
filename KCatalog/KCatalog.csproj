@@ -62,5 +62,37 @@
     <Compile Include="Source\Tests\HashTests.cs" />
     <Compile Include="Source\Tests\TestRunner.cs" />
   </ItemGroup>
+  <ItemGroup>
+    <Content Include="Version.txt" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <Target Name="UpdateVersion" BeforeTargets="CoreCompile">
+    <Exec Command="git.exe status --short" ConsoleToMsBuild="true">
+      <Output TaskParameter="ConsoleOutput" PropertyName="GitStatus" />
+    </Exec>
+    <Exec Command="git rev-parse --short=8 HEAD" ConsoleToMsBuild="true">
+      <Output TaskParameter="ConsoleOutput" PropertyName="VersionRevision" />
+    </Exec>
+    <PropertyGroup>
+      <AssemblyInfoVersionGen>$(IntermediateOutputPath)AssemblyInfoVersion.Gen.cs</AssemblyInfoVersionGen>
+      <DirtySuffix>
+      </DirtySuffix>
+      <VersionBase>$([System.IO.File]::ReadAllText('version.txt'))</VersionBase>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(GitStatus)' != ''">
+      <DirtySuffix>-dirty</DirtySuffix>
+    </PropertyGroup>
+    <ItemGroup>
+      <Compile Include="$(AssemblyInfoVersionGen)" />
+    </ItemGroup>
+    <ItemGroup>
+      <AssemblyAttributes Include="AssemblyVersion">
+        <_Parameter1>$(VersionBase).0.0</_Parameter1>
+      </AssemblyAttributes>
+      <AssemblyAttributes Include="AssemblyFileVersion">
+        <_Parameter1>$(VersionBase).0.$(VersionRevision)$(DirtySuffix)</_Parameter1>
+      </AssemblyAttributes>
+    </ItemGroup>
+    <WriteCodeFragment Language="C#" OutputFile="$(AssemblyInfoVersionGen)" AssemblyAttributes="@(AssemblyAttributes)" />
+  </Target>
 </Project>

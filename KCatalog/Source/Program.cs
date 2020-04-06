@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO.Abstractions;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -9,6 +11,12 @@ namespace KCatalog
 {
 	public class Program
 	{
+		#region Fields
+
+		public static string SoftwareVersion { get; } = FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location).FileVersion;
+
+		#endregion Fields
+
 		#region Methods
 
 		public static void Main(string[] args)

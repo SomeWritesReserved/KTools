@@ -89,7 +89,7 @@ namespace KCatalog
 				new XDocument(
 					new XElement("Catalog",
 						new XElement("FileFormatVersion", Catalog.fileFormatVersion),
-						new XElement("SoftwareVersion", System.Reflection.Assembly.GetExecutingAssembly().GetName().Version),
+						new XElement("SoftwareVersion", Program.SoftwareVersion),
 						new XElement("BaseDirectoryPath", this.BaseDirectoryPath),
 						new XElement("Date", DateTime.Now),
 						new XElement("Files",
