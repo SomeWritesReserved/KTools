@@ -78,8 +78,9 @@ namespace KCatalog
 						if (!commandArgs.SequenceEqual(commandArgsNoLog))
 						{
 							this.logFileName = DateTime.Now.ToString("yyyy-MM-dd_hh-mmtt") + $"_{commandName}.log";
-							this.log(string.Join(" ", args.Select((arg) => $"\"{arg}\"")));
+							this.log($"Version {Program.SoftwareVersion}: KCatalog.exe " + string.Join(" ", args.Select((arg) => $"\"{arg}\"")));
 						}
+						if (Program.SoftwareVersion.Contains("-dirty")) { this.outputWriter.WriteLine($"WARNING: This is a dev/dirty build ({Program.SoftwareVersion})."); }
 						Dictionary<string, object> parsedArguments = this.parseArguments(fileSystem, commandArgsNoLog, this.commands[commandName].Item2);
 						this.commands[commandName].Item1.Invoke(parsedArguments);
 					}
@@ -198,6 +199,7 @@ namespace KCatalog
 
 		private void showHelp()
 		{
+			this.outputWriter.WriteLine($"Version {Program.SoftwareVersion}");
 			this.outputWriter.WriteLine($"Available commands are:");
 			this.outputWriter.Write("  ");
 			this.outputWriter.WriteLine(string.Join(", ", this.commands.Select((command) => command.Key)));
