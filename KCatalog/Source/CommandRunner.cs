@@ -15,7 +15,7 @@ namespace KCatalog
 	/// This class must never use System.Console (instead use <see cref="outputWriter"/> and <see cref="inputReader"/>)
 	/// and it must never use System.IO types (instead use <see cref="fileSystem"/>) so that it can be unit testable.
 	/// </remarks>
-	public class CommandRunner
+	public partial class CommandRunner
 	{
 		#region Fields
 
@@ -58,6 +58,12 @@ namespace KCatalog
 
 				{ "dir-findempty", new Tuple<Action<Dictionary<string, object>>, string, string>(this.commandDirectoryFindEmpty, "[--delete] <DirectoryToSearch>",
 					"Searches all directories in <DirectoryToSearch> and its subdirectories for empty directories. If --delete is specified they will also be deleted. A directory is empty if it contains no files in itself or any of its subdirectories. This will only print the upper-most directory if all of its subdirectories are also empty.") },
+
+				{ "photo-archive", new Tuple<Action<Dictionary<string, object>>, string, string>(this.commandPhotoArchive, "<SourceDirectory> <ArchiveDirectory>",
+					"Moves all photo and video files from <SourceDirectory> and its subdirectories to <ArchiveDirectory> following the folder structure of YYYY/mm-xxxxx/dd-mm-YYYY. Files will be _moved_, not copied. Photos and videos must have an Android file name format (YYYYmmDD_HHMMSS).") },
+
+				{ "photo-archive-validate", new Tuple<Action<Dictionary<string, object>>, string, string>(this.commandPhotoArchiveValidate, "<ArchiveDirectory>",
+					"Validates all folders in <ArchiveDirectory> to make sure they match the expected structure of YYYY/mm-xxxxx/dd-mm-YYYY. This command will list any folders that are incorrect (if nothing is listed then all folders are correct).") },
 			};
 		}
 

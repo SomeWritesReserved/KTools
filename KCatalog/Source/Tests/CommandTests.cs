@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace KCatalog.Tests
 {
-	public class CatalogCreateTests
+	public partial class CommandTests
 	{
 		#region Tests
 

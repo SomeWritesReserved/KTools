@@ -58,6 +58,8 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Source\Tests\Assert.cs" />
     <Compile Include="Source\Tests\CatalogTests.cs" />
+    <Compile Include="Source\CommandRunner.Photos.cs" />
+    <Compile Include="Source\Tests\CommandTests.Photos.cs" />
     <Compile Include="Source\Tests\CommandTests.cs" />
     <Compile Include="Source\Tests\HashTests.cs" />
     <Compile Include="Source\Tests\TestRunner.cs" />
