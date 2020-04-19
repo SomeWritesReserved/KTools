@@ -81,13 +81,14 @@ namespace KCatalog.Tests
 				{ @"C:\NewPhotos\2\IMG_20191227_134135627.jpg", new MockFileData("SameFileContents") }, // this will be deleted because it is the same as above
 				{ @"C:\NewPhotos\2\IMG_20200308_163333584.jpg", new MockFileData("") },
 				{ @"C:\NewPhotos\2\IMG_20200303_213129184.jpg", new MockFileData("") },
+				{ @"C:\NewPhotos\2\IMG_20190830_172847_01.jpg", new MockFileData("") },
 			}, @"C:\KCatalog");
 			new CommandRunner(fileSystem, System.IO.TextWriter.Null, System.IO.TextReader.Null).Run(new[] { "photo-archive", "--log", @"C:\NewPhotos", @"C:\Archive\Photos" });
 			string[] logLines = this.getLogLines(fileSystem);
 			Assert.AreEqual(0, logLines.Length);
 			Assert.AreEqual(0, fileSystem.Directory.GetFiles(@"C:\NewPhotos", "*", System.IO.SearchOption.AllDirectories).Length);
 			string[] archivedFiles = fileSystem.Directory.GetFiles(@"C:\Archive\Photos", "*", System.IO.SearchOption.AllDirectories);
-			Assert.AreEqual(14, archivedFiles.Length);
+			Assert.AreEqual(15, archivedFiles.Length);
 			Assert.IsTrue(archivedFiles.Contains(@"C:\Archive\Photos\2019\12-December\12-27-2019\20191227_134135627.jpg"));
 			Assert.IsTrue(archivedFiles.Contains(@"C:\Archive\Photos\2020\03-March\03-05-2020\20200305_121959365_HDR.jpg"));
 			Assert.IsTrue(archivedFiles.Contains(@"C:\Archive\Photos\2020\03-March\03-05-2020\20200305_122004044_HDR.jpg"));
@@ -102,6 +103,7 @@ namespace KCatalog.Tests
 			Assert.IsTrue(archivedFiles.Contains(@"C:\Archive\Photos\2020\04-April\04-08-2020\20200408_184313175.mp4"));
 			Assert.IsTrue(archivedFiles.Contains(@"C:\Archive\Photos\2020\03-March\03-08-2020\20200308_163333584.jpg"));
 			Assert.IsTrue(archivedFiles.Contains(@"C:\Archive\Photos\2020\03-March\03-03-2020\20200303_213129184.jpg"));
+			Assert.IsTrue(archivedFiles.Contains(@"C:\Archive\Photos\2019\08-August\08-30-2019\20190830_172847_01.jpg"));
 		}
 		
 		public void PhotoArchive_Warnings()
