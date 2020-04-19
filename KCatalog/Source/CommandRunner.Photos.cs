@@ -48,16 +48,16 @@ namespace KCatalog
 					int year = int.Parse(match.Groups["year"].Value);
 					DateTime dateTime = new DateTime(year, month, day);
 
-					string dayFolderPath = fileSystem.Path.Combine(archiveDirectory.FullName, this.getYearFormatted(dateTime), this.getMonthFormatted(dateTime), this.getDayFormatted(dateTime));
-					fileSystem.Directory.CreateDirectory(dayFolderPath);
+					string dayFolderPath = this.fileSystem.Path.Combine(archiveDirectory.FullName, this.getYearFormatted(dateTime), this.getMonthFormatted(dateTime), this.getDayFormatted(dateTime));
+					this.fileSystem.Directory.CreateDirectory(dayFolderPath);
 
 					// We strip the prefix so that photos and videos are all side-by-side, sorted by timestamp
 					string archiveFileName = sourceFile.Name.Substring(prefix.Length);
-					string archiveFilePath = fileSystem.Path.Combine(dayFolderPath, archiveFileName);
+					string archiveFilePath = this.fileSystem.Path.Combine(dayFolderPath, archiveFileName);
 
-					if (fileSystem.File.Exists(archiveFilePath))
+					if (this.fileSystem.File.Exists(archiveFilePath))
 					{
-						if (fileSystem.File.ReadAllBytes(archiveFilePath).SequenceEqual(fileSystem.File.ReadAllBytes(sourceFile.FullName)))
+						if (this.fileSystem.File.ReadAllBytes(archiveFilePath).SequenceEqual(this.fileSystem.File.ReadAllBytes(sourceFile.FullName)))
 						{
 							// Files are the same so just delete the source file since it already exists in the archive directory
 							sourceFile.Delete();

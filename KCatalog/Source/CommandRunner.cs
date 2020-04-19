@@ -44,11 +44,11 @@ namespace KCatalog
 				{ "catalog-create", new Tuple<Action<Dictionary<string, object>>, string, string>(this.commandCatalogCreate, "<DirectoryToCatalog>",
 					"Catalogs all files in <DirectoryToCatalog> and its subdirectories to create a catalog file. The catalog will be saved as '.kcatalog' in <DirectoryToCatalog>. You will need to recatalog the directory if files are changed. When you recatalog all files are rescanned and the existing .kcatalog is overwritten.") },
 
-				{ "catalog-check", new Tuple<Action<Dictionary<string, object>>, string, string>(this.commandCatalogCheck, "<CatalogFile>",
-					"Checks all files in the directory of <CatalogFile> and its subdirectories, listing any files that have been added or removed since the catalog was taken. This command does not check file contents or hashes of existing files, it just checks for new/removed files. This only informs you if you need to recatalog (using 'catalog-create').") },
+				{ "catalog-update", new Tuple<Action<Dictionary<string, object>>, string, string>(this.commandCatalogUpdate, "[--dryrun] <CatalogFile>",
+					"Catalogs all new files in the directory of <CatalogFile> and its subdirectories that have been added or removed since when the catalog was taken. This command only checks for new or deleted files, it does not check file contents or hashes of existing already cataloged files. If --dryrun is specified the catalog won't actually be updated and instead the new and deleted files will only be listed.") },
 
 				{ "catalog-compare", new Tuple<Action<Dictionary<string, object>>, string, string>(this.commandCatalogCompare, "[--delete] <BaseCatalogFile> <OtherCatalogFile>",
-					"Finds all files in <OtherCatalogFile> that are already cataloged by <BaseCatalogFile> (i.e. files in <OtherCatalogFile> that duplicate files in <BaseCatalogFile>). This ignores file paths and file names, it only compares file contents/hashes (so files are still considered duplicate if they have the same content but different file nameS). This command will list the duplicated files that are found. If --delete is specified the duplicated files will also be deleted from the directory of <OtherCatalogFile>. This is the same as 'dir-compare' but faster since the cataloging has already been done. Be sure both catalogs are up-to-date (using 'catalog-check' and 'catalog-create' as necessary).") },
+					"Finds all files in <OtherCatalogFile> that are already cataloged by <BaseCatalogFile> (i.e. files in <OtherCatalogFile> that duplicate files in <BaseCatalogFile>). This ignores file paths and file names, it only compares file contents/hashes (so files are still considered duplicate if they have the same content but different file nameS). This command will list the duplicated files that are found. If --delete is specified the duplicated files will also be deleted from the directory of <OtherCatalogFile>. This is the same as 'dir-compare' but faster since the cataloging has already been done. Be sure both catalogs are up-to-date (using 'catalog-create' or 'catalog-update').") },
 
 				{ "dir-compare", new Tuple<Action<Dictionary<string, object>>, string, string>(this.commandDirectoryCompare, "[--delete] <BaseDirectory> <OtherDirectory>",
 					"Finds all files in <OtherDirectory> that exist in <BaseDirectory> (i.e. files in <OtherDirectory> that duplicate files in <BaseCatalogFile>). This ignores file paths and file names, it only compares file contents/hashes (so files are still considered duplicate if they have the same content but different file nameS). This command will list the duplicated files that are found. If --delete is specified the duplicated files will also be deleted from <OtherDirectory>. This is the same as 'catalog-compare' but slower since both directories need to be cataloged first (these catalogs will not be saved).") },
@@ -213,8 +213,9 @@ namespace KCatalog
 			this.outputWriter.Write("  ");
 			this.outputWriter.WriteLine(string.Join(", ", this.commands.Select((command) => command.Key)));
 			this.outputWriter.WriteLine();
-			this.outputWriter.WriteLine("Typically you create a catalog of a directory using 'catalog-create', check to see if it needs updated with 'catalog-check', then recreate the catalog as-needed by doing 'catalog-create' again. " +
-				"You can detect duplicate files between two folders by creating catalogs in both with 'catalog-create' and then doing 'catalog-compare'.");
+			this.outputWriter.WriteLine("How to use: Typically you create a catalog of a directory using 'catalog-create', update it periodically with 'catalog-update', then recreate the catalog as-needed by doing 'catalog-create' again if file contents change. " +
+				"You can detect duplicate files between two folders by using 'dir-compare'. " +
+				"Use 'photo-archive' to automatically put photos into the archive with the correct folder structure.");
 			this.outputWriter.WriteLine();
 			this.outputWriter.WriteLine("All commands accept the --log switch to write their important output to a time stamped log file in addition to standard output.");
 		}
@@ -256,7 +257,9 @@ namespace KCatalog
 			if (!directoryToCatalog.Exists) { throw new CommandLineArgumentException("<DirectoryToCatalog>", "Directory does not exist."); }
 
 			this.outputWriter.Write("Getting files in directory to catalog... ");
-			IFileInfo[] foundFiles = directoryToCatalog.GetFiles("*", System.IO.SearchOption.AllDirectories);
+			IFileInfo[] foundFiles = directoryToCatalog.GetFiles("*", System.IO.SearchOption.AllDirectories)
+				.Where((file) => file.Name != ".kcatalog")
+				.ToArray();
 			this.outputWriter.WriteLine($"Found {foundFiles.Length} files.");
 
 			IFileInfo catalogFile = this.fileSystem.FileInfo.FromFileName(this.fileSystem.Path.Combine(directoryToCatalog.FullName, ".kcatalog"));
@@ -284,26 +287,50 @@ namespace KCatalog
 			}
 		}
 
-		private void commandCatalogCheck(Dictionary<string, object> arguments)
+		private void commandCatalogUpdate(Dictionary<string, object> arguments)
 		{
+			bool isDryRun = arguments.ContainsKey("--dryrun");
+
 			IFileInfo catalogFile = (IFileInfo)arguments["CatalogFile"];
 			if (!catalogFile.Exists) { throw new CommandLineArgumentException("<CatalogFile>", "Catalog file does not exist."); }
 
-			Catalog catalog = Catalog.Read(catalogFile);
-
-			this.outputWriter.Write("Getting files in cataloged directory... ");
+			Catalog originalCatalog = Catalog.Read(catalogFile);
 			IDirectoryInfo catalogedDirectory = catalogFile.Directory;
-			Dictionary<string, IFileInfo> foundFiles = catalogedDirectory.GetFiles("*", System.IO.SearchOption.AllDirectories).ToDictionary((file) => file.GetRelativePath(catalogedDirectory), (file) => file, StringComparer.OrdinalIgnoreCase);
-			this.outputWriter.WriteLine($"Found {foundFiles.Count} files.");
-
-			foreach (FileInstance fileInstance in catalog.FileInstances)
+			if (!catalogedDirectory.FullName.Equals(this.fileSystem.DirectoryInfo.FromDirectoryName(originalCatalog.BaseDirectoryPath).FullName, StringComparison.OrdinalIgnoreCase))
 			{
-				if (!foundFiles.Remove(fileInstance.RelativePath)) { this.log($"Removed: {fileInstance.RelativePath}"); }
+				throw new CommandLineArgumentException("<CatalogFile>", "Catalog file was moved and does not represent a catalog of the directory it is currently in. Cannot update.");
 			}
 
-			foreach (string leftOverFile in foundFiles.Keys.OrderBy((s) => s))
+			this.outputWriter.Write("Getting files in cataloged directory... ");
+			Dictionary<string, IFileInfo> foundFiles = catalogedDirectory.GetFiles("*", System.IO.SearchOption.AllDirectories)
+				.Where((file) => file.Name != ".kcatalog")
+				.ToDictionary((file) => file.GetRelativePath(catalogedDirectory), (file) => file, StringComparer.OrdinalIgnoreCase);
+			this.outputWriter.WriteLine($"Found {foundFiles.Count} files.");
+
+			bool hasChanges = false;
+			HashSet<FileInstance> newFileInstances = new HashSet<FileInstance>(originalCatalog.FileInstances);
+			foreach (FileInstance fileInstance in originalCatalog.FileInstances)
 			{
-				this.log($"Added  : {leftOverFile}");
+				if (!foundFiles.Remove(fileInstance.RelativePath))
+				{
+					this.log($"Removed: {fileInstance.RelativePath}");
+					newFileInstances.Remove(fileInstance);
+					hasChanges = true;
+				}
+			}
+
+			foreach (KeyValuePair<string, IFileInfo> leftOverFile in foundFiles.OrderBy((kvp) => kvp.Key))
+			{
+				this.log($"Added  : {leftOverFile.Key}");
+				FileInstance fileInstance = this.createFileInstance(catalogedDirectory, leftOverFile.Value);
+				newFileInstances.Add(fileInstance);
+				hasChanges = true;
+			}
+
+			if (!isDryRun && hasChanges)
+			{
+				Catalog updatedCatalog = new Catalog(originalCatalog.BaseDirectoryPath, originalCatalog.CatalogedOn, DateTime.Now, newFileInstances);
+				updatedCatalog.Write(catalogFile);
 			}
 		}
 
@@ -462,24 +489,33 @@ namespace KCatalog
 			int fileCount = 0;
 			foreach (IFileInfo file in allFiles)
 			{
-				string relativePath = file.GetRelativePath(baseDirectory);
 				try
 				{
-					using (System.IO.Stream stream = file.OpenRead())
-					{
-						long fileSize = stream.Length;
-						Hash256 fileContentsHash = Hash256.GetContentsHash(stream);
-						fileInstances.Add(new FileInstance(relativePath, fileSize, fileContentsHash));
-					}
+					FileInstance fileInstance = this.createFileInstance(baseDirectory, file);
+					fileInstances.Add(fileInstance);
 				}
 				catch (System.IO.IOException ioException)
 				{
-					errors.Add($"Couldn't read ({ioException.Message}): {relativePath}");
+					errors.Add($"Couldn't read ({ioException.Message}): {file}");
 				}
 				fileCount++;
 				if ((fileCount % 20) == 0) { this.outputWriter.WriteLine($"{(double)fileCount / allFiles.Length:P}% ({fileCount} / {allFiles.Length})"); }
 			}
 			return new Catalog(baseDirectory.FullName, DateTime.Now, fileInstances);
+		}
+
+		/// <summary>
+		/// Creates a new <see cref="FileInstance"/> for the specified file.
+		/// </summary>
+		private FileInstance createFileInstance(IDirectoryInfo baseDirectory, IFileInfo file)
+		{
+			string relativePath = file.GetRelativePath(baseDirectory);
+			using (System.IO.Stream stream = file.OpenRead())
+			{
+				long fileSize = stream.Length;
+				Hash256 fileContentsHash = Hash256.GetContentsHash(stream);
+				return new FileInstance(relativePath, fileSize, fileContentsHash);
+			}
 		}
 
 		/// <summary>

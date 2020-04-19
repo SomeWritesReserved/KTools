@@ -16,16 +16,22 @@ namespace KCatalog
 	{
 		#region Fields
 
-		private static readonly Version fileFormatVersion = new Version(1, 1);
+		private static readonly Version fileFormatVersion = new Version(2, 0);
 
 		#endregion Fields
 
 		#region Constructors
 
 		public Catalog(string baseDirectoryPath, DateTime catalogedOn, IEnumerable<FileInstance> fileInstances)
+			: this(baseDirectoryPath, catalogedOn, catalogedOn, fileInstances)
+		{
+		}
+
+		public Catalog(string baseDirectoryPath, DateTime catalogedOn, DateTime updatedOn, IEnumerable<FileInstance> fileInstances)
 		{
 			this.BaseDirectoryPath = baseDirectoryPath;
 			this.CatalogedOn = catalogedOn;
+			this.UpdatedOn = updatedOn;
 			this.FileInstances = fileInstances.ToList().AsReadOnly();
 
 			this.FileInstancesByPath = fileInstances.ToDictionary((fileInstance) => fileInstance.RelativePath, (fileInstance) => fileInstance);
@@ -46,6 +52,11 @@ namespace KCatalog
 		/// Gets the date and time the catalog was taken on.
 		/// </summary>
 		public DateTime CatalogedOn { get; }
+
+		/// <summary>
+		/// Gets the date and time the catalog was last updated on.
+		/// </summary>
+		public DateTime UpdatedOn { get; set; }
 
 		/// <summary>
 		/// Gets the collection of all files that have been cataloged.
@@ -91,7 +102,8 @@ namespace KCatalog
 						new XElement("FileFormatVersion", Catalog.fileFormatVersion),
 						new XElement("SoftwareVersion", Program.SoftwareVersion),
 						new XElement("BaseDirectoryPath", this.BaseDirectoryPath),
-						new XElement("Date", DateTime.Now),
+						new XElement("CatalogedOn", this.CatalogedOn),
+						new XElement("UpdatedOn", this.UpdatedOn),
 						new XElement("Files",
 							this.FileInstances.Select((fileInstance) => new XElement("f", new XAttribute("p", fileInstance.RelativePath), new XAttribute("h", fileInstance.FileContentsHash), new XAttribute("l", fileInstance.FileSize)))
 						)
@@ -106,11 +118,12 @@ namespace KCatalog
 			{
 				XDocument xDocument = XDocument.Load(stream);
 				string baseDirectoryPath = (string)xDocument.Element("Catalog").Element("BaseDirectoryPath");
-				DateTime catalogedOn = (DateTime)xDocument.Element("Catalog").Element("Date");
+				DateTime catalogedOn = (DateTime)xDocument.Element("Catalog").Element("CatalogedOn");
+				DateTime updatedOn = (DateTime)xDocument.Element("Catalog").Element("UpdatedOn");
 				List<FileInstance> fileInstances = xDocument.Element("Catalog").Element("Files").Elements("f")
 					.Select((element) => new FileInstance(element.Attribute("p").Value, (long)element.Attribute("l"), Hash256.Parse(element.Attribute("h").Value)))
 					.ToList();
-				return new Catalog(baseDirectoryPath, catalogedOn, fileInstances);
+				return new Catalog(baseDirectoryPath, catalogedOn, updatedOn, fileInstances);
 			}
 		}
 

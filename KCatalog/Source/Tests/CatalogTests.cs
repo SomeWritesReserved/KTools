@@ -26,14 +26,15 @@ namespace KCatalog.Tests
 			this.verifyCatalog(catalogRead);
 		}
 
-		public void ReadFileFormat1dot1()
+		public void ReadFileFormat_2_0()
 		{
 			const string catalogFileContents1dot1 = @"<?xml version=""1.0"" encoding=""utf-8""?>
 <Catalog>
-  <FileFormatVersion>1.1</FileFormatVersion>
+  <FileFormatVersion>2.0</FileFormatVersion>
   <SoftwareVersion>1.1.0.0</SoftwareVersion>
   <BaseDirectoryPath>C:\files\archive</BaseDirectoryPath>
-  <Date>2020-04-05T01:19:14.9181074-04:00</Date>
+  <CatalogedOn>2020-04-05T01:19:14.9181074-04:00</CatalogedOn>
+  <UpdatedOn>2020-04-05T01:19:14.9181074-04:00</UpdatedOn>
   <Files>
     <f p=""file1.txt"" h=""00000000000003e7000000000000000000000000000000de0000000000000000"" l=""100"" />
     <f p=""file2.txt"" h=""00000000000003780000000000000002000000000000006f0000000000000005"" l=""105"" />
