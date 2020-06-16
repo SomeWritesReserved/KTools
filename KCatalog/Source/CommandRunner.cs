@@ -44,6 +44,9 @@ namespace KCatalog
 				{ "catalog-create", new Tuple<Action<Dictionary<string, object>>, string, string>(this.commandCatalogCreate, "<DirectoryToCatalog>",
 					"Catalogs all files in <DirectoryToCatalog> and its subdirectories to create a catalog file. The catalog will be saved as '.kcatalog' in <DirectoryToCatalog>. You will need to recatalog the directory if files are changed. When you recatalog all files are rescanned and the existing .kcatalog is overwritten.") },
 
+				{ "catalog-create-detached", new Tuple<Action<Dictionary<string, object>>, string, string>(this.commandCatalogCreateDetached, "<DirectoryToCatalog> <CatalogFile>",
+					"Catalogs all files in <DirectoryToCatalog> and its subdirectories to create a catalog file. The catalog will be saved as a '.kcatalog' file at <CatalogFile>. This is intended for cataloging read-only media like CD/DVDs when a .kcatalog file cannot be created at the root directory.") },
+
 				{ "catalog-update", new Tuple<Action<Dictionary<string, object>>, string, string>(this.commandCatalogUpdate, "[--dryrun] <CatalogFile>",
 					"Catalogs all new files in the directory of <CatalogFile> and its subdirectories that have been added or removed since when the catalog was taken. This command only checks for new or deleted files, it does not check file contents or hashes of existing already cataloged files. If --dryrun is specified the catalog won't actually be updated and instead the new and deleted files will only be listed.") },
 
@@ -60,7 +63,7 @@ namespace KCatalog
 					"Searches all directories in <DirectoryToSearch> and its subdirectories for empty directories. If --delete is specified they will also be deleted. A directory is empty if it contains no files in itself or any of its subdirectories. This will only print the upper-most directory if all of its subdirectories are also empty.") },
 
 				{ "photo-archive", new Tuple<Action<Dictionary<string, object>>, string, string>(this.commandPhotoArchive, "<SourceDirectory> <ArchiveDirectory>",
-					"Moves all photo and video files from <SourceDirectory> and its subdirectories to <ArchiveDirectory> following the folder structure of YYYY/mm-xxxxx/dd-mm-YYYY. Files will be _moved_, not copied. Photos and videos must have an Android file name format (YYYYmmDD_HHMMSS).") },
+					"Moves all photo and video files from <SourceDirectory> and its subdirectories to <ArchiveDirectory> following the folder structure of YYYY/mm-xxxxx/dd-mm-YYYY. Files will be _moved_, not copied. Photos and videos must have an Android file name format (YYYYmmDD_HHMMSS). Prefixes of IMG_ and VID_ are removed so photos and videos are ordered chronologically side-by-side. Videos will also be re-encoded with VLC to compress them further.") },
 
 				{ "photo-archive-validate", new Tuple<Action<Dictionary<string, object>>, string, string>(this.commandPhotoArchiveValidate, "<ArchiveDirectory>",
 					"Validates all folders in <ArchiveDirectory> to make sure they match the expected structure of YYYY/mm-xxxxx/dd-mm-YYYY. This command will list any folders that are incorrect (if nothing is listed then all folders are correct).") },
@@ -254,6 +257,19 @@ namespace KCatalog
 		private void commandCatalogCreate(Dictionary<string, object> arguments)
 		{
 			IDirectoryInfo directoryToCatalog = (IDirectoryInfo)arguments["DirectoryToCatalog"];
+			IFileInfo catalogFile = this.fileSystem.FileInfo.FromFileName(this.fileSystem.Path.Combine(directoryToCatalog.FullName, ".kcatalog"));
+			this.catalogCreateCore(directoryToCatalog, catalogFile);
+		}
+
+		private void commandCatalogCreateDetached(Dictionary<string, object> arguments)
+		{
+			IDirectoryInfo directoryToCatalog = (IDirectoryInfo)arguments["DirectoryToCatalog"];
+			IFileInfo catalogFile = (IFileInfo)arguments["CatalogFile"];
+			this.catalogCreateCore(directoryToCatalog, catalogFile);
+		}
+
+		private void catalogCreateCore(IDirectoryInfo directoryToCatalog, IFileInfo catalogFile)
+		{
 			if (!directoryToCatalog.Exists) { throw new CommandLineArgumentException("<DirectoryToCatalog>", "Directory does not exist."); }
 
 			this.outputWriter.Write("Getting files in directory to catalog... ");
@@ -262,7 +278,6 @@ namespace KCatalog
 				.ToArray();
 			this.outputWriter.WriteLine($"Found {foundFiles.Length} files.");
 
-			IFileInfo catalogFile = this.fileSystem.FileInfo.FromFileName(this.fileSystem.Path.Combine(directoryToCatalog.FullName, ".kcatalog"));
 			if (catalogFile.Exists)
 			{
 				this.outputWriter.WriteLine($"Catalog file already exists: {catalogFile.FullName}");

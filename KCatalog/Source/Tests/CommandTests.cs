@@ -63,6 +63,22 @@ namespace KCatalog.Tests
 			Assert.AreSame(catalog.FileInstancesByPath[@"subdirZ\file5.txt"], catalog.FileInstancesByHash[catalog.FileInstancesByPath[@"subdirZ\file5.txt"].FileContentsHash].Single());
 		}
 
+		public void CatalogCreateDetachedC()
+		{
+			MockFileSystem fileSystem = this.createMockFileSystem();
+			new CommandRunner(fileSystem, System.IO.TextWriter.Null, System.IO.TextReader.Null).Run(new[] { "catalog-create-detached", @"C:\folderC", @"C:\KCatalog\c.kcatalog" });
+			Assert.IsTrue(fileSystem.File.Exists(@"C:\KCatalog\c.kcatalog"));
+			Catalog catalog = Catalog.Read(fileSystem.FileInfo.FromFileName(@"C:\KCatalog\c.kcatalog"));
+			Assert.AreEqual(@"C:\folderC", catalog.BaseDirectoryPath);
+			Assert.AreEqual(4, catalog.FileInstances.Count);
+			Assert.AreEqual(4, catalog.FileInstancesByPath.Count);
+			Assert.AreEqual(4, catalog.FileInstancesByHash.Count);
+			Assert.AreSame(catalog.FileInstancesByPath[@"file1-diffname.txt"], catalog.FileInstancesByHash[catalog.FileInstancesByPath[@"file1-diffname.txt"].FileContentsHash].Single());
+			Assert.AreSame(catalog.FileInstancesByPath[@"file2.txt"], catalog.FileInstancesByHash[catalog.FileInstancesByPath[@"file2.txt"].FileContentsHash].Single());
+			Assert.AreSame(catalog.FileInstancesByPath[@"subdirY\file4.txt"], catalog.FileInstancesByHash[catalog.FileInstancesByPath[@"subdirY\file4.txt"].FileContentsHash].Single());
+			Assert.AreSame(catalog.FileInstancesByPath[@"subdirZ\file5.txt"], catalog.FileInstancesByHash[catalog.FileInstancesByPath[@"subdirZ\file5.txt"].FileContentsHash].Single());
+		}
+
 		public void CatalogCreate_DeclineOverwrite()
 		{
 			MockFileSystem fileSystem = this.createMockFileSystem();
