@@ -172,12 +172,12 @@ namespace KCatalog.Tests
 			Assert.Throws<CommandLineArgumentException>(() => new CommandRunner(fileSystem, System.IO.TextWriter.Null, System.IO.TextReader.Null).Run(new[] { "catalog-update", "--log", @"C:\folderB\.kcatalog" }));
 		}
 
-		public void CatalogCompareAB()
+		public void CatalogCompareDuplicatesAB()
 		{
 			MockFileSystem fileSystem = this.createMockFileSystem();
 			new CommandRunner(fileSystem, System.IO.TextWriter.Null, System.IO.TextReader.Null).Run(new[] { "catalog-create", @"C:\folderA" });
 			new CommandRunner(fileSystem, System.IO.TextWriter.Null, System.IO.TextReader.Null).Run(new[] { "catalog-create", @"C:\folderB" });
-			new CommandRunner(fileSystem, System.IO.TextWriter.Null, System.IO.TextReader.Null).Run(new[] { "catalog-compare", "--log", @"C:\folderA\.kcatalog", @"C:\folderB\.kcatalog" });
+			new CommandRunner(fileSystem, System.IO.TextWriter.Null, System.IO.TextReader.Null).Run(new[] { "catalog-compare-duplicates", "--log", @"C:\folderA\.kcatalog", @"C:\folderB\.kcatalog" });
 			string[] logLines = this.getLogLines(fileSystem);
 			Assert.AreEqual(4, logLines.Length); // Last line is just a summary line
 			Assert.AreEqual(@"file1-diffname.txt", logLines[0]);
@@ -185,12 +185,12 @@ namespace KCatalog.Tests
 			Assert.AreEqual(@"subdirY\file4.txt", logLines[2]);
 		}
 
-		public void CatalogCompareAB_Delete()
+		public void CatalogCompareDuplicatesAB_Delete()
 		{
 			MockFileSystem fileSystem = this.createMockFileSystem();
 			new CommandRunner(fileSystem, System.IO.TextWriter.Null, System.IO.TextReader.Null).Run(new[] { "catalog-create", @"C:\folderA" });
 			new CommandRunner(fileSystem, System.IO.TextWriter.Null, System.IO.TextReader.Null).Run(new[] { "catalog-create", @"C:\folderB" });
-			new CommandRunner(fileSystem, System.IO.TextWriter.Null, new System.IO.StringReader("yes")).Run(new[] { "catalog-compare", "--log", "--delete", @"C:\folderA\.kcatalog", @"C:\folderB\.kcatalog" });
+			new CommandRunner(fileSystem, System.IO.TextWriter.Null, new System.IO.StringReader("yes")).Run(new[] { "catalog-compare-duplicates", "--log", "--delete", @"C:\folderA\.kcatalog", @"C:\folderB\.kcatalog" });
 			string[] logLines = this.getLogLines(fileSystem);
 			Assert.AreEqual(5, logLines.Length); // Last two lines are just summary lines
 			Assert.AreEqual(@"file1-diffname.txt", logLines[0]);
@@ -201,12 +201,12 @@ namespace KCatalog.Tests
 			Assert.AreEqual(@"C:\folderB\.kcatalog", filesLeft[0]);
 		}
 
-		public void CatalogCompareBA()
+		public void CatalogCompareDuplicatesBA()
 		{
 			MockFileSystem fileSystem = this.createMockFileSystem();
 			new CommandRunner(fileSystem, System.IO.TextWriter.Null, System.IO.TextReader.Null).Run(new[] { "catalog-create", @"C:\folderA" });
 			new CommandRunner(fileSystem, System.IO.TextWriter.Null, System.IO.TextReader.Null).Run(new[] { "catalog-create", @"C:\folderB" });
-			new CommandRunner(fileSystem, System.IO.TextWriter.Null, System.IO.TextReader.Null).Run(new[] { "catalog-compare", "--log", @"C:\folderB\.kcatalog", @"C:\folderA\.kcatalog" });
+			new CommandRunner(fileSystem, System.IO.TextWriter.Null, System.IO.TextReader.Null).Run(new[] { "catalog-compare-duplicates", "--log", @"C:\folderB\.kcatalog", @"C:\folderA\.kcatalog" });
 			string[] logLines = this.getLogLines(fileSystem);
 			Assert.AreEqual(5, logLines.Length); // Last line is just a summary line
 			Assert.AreEqual(@"file1.txt", logLines[0]);
@@ -215,12 +215,12 @@ namespace KCatalog.Tests
 			Assert.AreEqual(@"file4-diffname.txt", logLines[3]);
 		}
 
-		public void CatalogCompareBA_Delete()
+		public void CatalogCompareDuplicatesBA_Delete()
 		{
 			MockFileSystem fileSystem = this.createMockFileSystem();
 			new CommandRunner(fileSystem, System.IO.TextWriter.Null, System.IO.TextReader.Null).Run(new[] { "catalog-create", @"C:\folderA" });
 			new CommandRunner(fileSystem, System.IO.TextWriter.Null, System.IO.TextReader.Null).Run(new[] { "catalog-create", @"C:\folderB" });
-			new CommandRunner(fileSystem, System.IO.TextWriter.Null, new System.IO.StringReader("yes")).Run(new[] { "catalog-compare", "--log", "--delete", @"C:\folderB\.kcatalog", @"C:\folderA\.kcatalog" });
+			new CommandRunner(fileSystem, System.IO.TextWriter.Null, new System.IO.StringReader("yes")).Run(new[] { "catalog-compare-duplicates", "--log", "--delete", @"C:\folderB\.kcatalog", @"C:\folderA\.kcatalog" });
 			string[] logLines = this.getLogLines(fileSystem);
 			Assert.AreEqual(6, logLines.Length); // Last two lines are just summary lines
 			Assert.AreEqual(@"file1.txt", logLines[0]);
@@ -234,12 +234,12 @@ namespace KCatalog.Tests
 			Assert.AreEqual(@"C:\folderA\.kcatalog", filesLeft[2]);
 		}
 
-		public void CatalogCompareAC()
+		public void CatalogCompareDuplicatesAC()
 		{
 			MockFileSystem fileSystem = this.createMockFileSystem();
 			new CommandRunner(fileSystem, System.IO.TextWriter.Null, System.IO.TextReader.Null).Run(new[] { "catalog-create", @"C:\folderA" });
 			new CommandRunner(fileSystem, System.IO.TextWriter.Null, System.IO.TextReader.Null).Run(new[] { "catalog-create", @"C:\folderC" });
-			new CommandRunner(fileSystem, System.IO.TextWriter.Null, System.IO.TextReader.Null).Run(new[] { "catalog-compare", "--log", @"C:\folderA\.kcatalog", @"C:\folderC\.kcatalog" });
+			new CommandRunner(fileSystem, System.IO.TextWriter.Null, System.IO.TextReader.Null).Run(new[] { "catalog-compare-duplicates", "--log", @"C:\folderA\.kcatalog", @"C:\folderC\.kcatalog" });
 			string[] logLines = this.getLogLines(fileSystem);
 			Assert.AreEqual(4, logLines.Length); // Last line is just a summary line
 			Assert.AreEqual(@"file1-diffname.txt", logLines[0]);
@@ -247,12 +247,12 @@ namespace KCatalog.Tests
 			Assert.AreEqual(@"subdirY\file4.txt", logLines[2]);
 		}
 
-		public void CatalogCompareAC_Delete()
+		public void CatalogCompareDuplicatesAC_Delete()
 		{
 			MockFileSystem fileSystem = this.createMockFileSystem();
 			new CommandRunner(fileSystem, System.IO.TextWriter.Null, System.IO.TextReader.Null).Run(new[] { "catalog-create", @"C:\folderA" });
 			new CommandRunner(fileSystem, System.IO.TextWriter.Null, System.IO.TextReader.Null).Run(new[] { "catalog-create", @"C:\folderC" });
-			new CommandRunner(fileSystem, System.IO.TextWriter.Null, new System.IO.StringReader("yes")).Run(new[] { "catalog-compare", "--log", "--delete", @"C:\folderA\.kcatalog", @"C:\folderC\.kcatalog" });
+			new CommandRunner(fileSystem, System.IO.TextWriter.Null, new System.IO.StringReader("yes")).Run(new[] { "catalog-compare-duplicates", "--log", "--delete", @"C:\folderA\.kcatalog", @"C:\folderC\.kcatalog" });
 			string[] logLines = this.getLogLines(fileSystem);
 			Assert.AreEqual(5, logLines.Length); // Last two lines are just summary lines
 			Assert.AreEqual(@"file1-diffname.txt", logLines[0]);
@@ -264,22 +264,88 @@ namespace KCatalog.Tests
 			Assert.AreEqual(@"C:\folderC\.kcatalog", filesLeft[1]);
 		}
 
-		public void CatalogCompare_DeclineDelete()
+		public void CatalogCompareDuplicates_DeclineDelete()
 		{
 			MockFileSystem fileSystem = this.createMockFileSystem();
 			new CommandRunner(fileSystem, System.IO.TextWriter.Null, System.IO.TextReader.Null).Run(new[] { "catalog-create", @"C:\folderA" });
 			new CommandRunner(fileSystem, System.IO.TextWriter.Null, System.IO.TextReader.Null).Run(new[] { "catalog-create", @"C:\folderB" });
-			Assert.Throws<OperationCanceledException>(() => new CommandRunner(fileSystem, System.IO.TextWriter.Null, new System.IO.StringReader("notyes")).Run(new[] { "catalog-compare", "--delete", @"C:\folderA\.kcatalog", @"C:\folderB\.kcatalog" }));
+			Assert.Throws<OperationCanceledException>(() => new CommandRunner(fileSystem, System.IO.TextWriter.Null, new System.IO.StringReader("notyes")).Run(new[] { "catalog-compare-duplicates", "--delete", @"C:\folderA\.kcatalog", @"C:\folderB\.kcatalog" }));
+		}
+
+		public void CatalogCompareUniqueAB()
+		{
+			MockFileSystem fileSystem = this.createMockFileSystem();
+			new CommandRunner(fileSystem, System.IO.TextWriter.Null, System.IO.TextReader.Null).Run(new[] { "catalog-create", @"C:\folderA" });
+			new CommandRunner(fileSystem, System.IO.TextWriter.Null, System.IO.TextReader.Null).Run(new[] { "catalog-create", @"C:\folderB" });
+			new CommandRunner(fileSystem, System.IO.TextWriter.Null, System.IO.TextReader.Null).Run(new[] { "catalog-compare-unique", "--log", @"C:\folderA\.kcatalog", @"C:\folderB\.kcatalog" });
+			string[] logLines = this.getLogLines(fileSystem);
+			Assert.AreEqual(1, logLines.Length); // Last line is just a summary line
+		}
+
+		public void CatalogCompareUniqueBA()
+		{
+			MockFileSystem fileSystem = this.createMockFileSystem();
+			new CommandRunner(fileSystem, System.IO.TextWriter.Null, System.IO.TextReader.Null).Run(new[] { "catalog-create", @"C:\folderA" });
+			new CommandRunner(fileSystem, System.IO.TextWriter.Null, System.IO.TextReader.Null).Run(new[] { "catalog-create", @"C:\folderB" });
+			new CommandRunner(fileSystem, System.IO.TextWriter.Null, System.IO.TextReader.Null).Run(new[] { "catalog-compare-unique", "--log", @"C:\folderB\.kcatalog", @"C:\folderA\.kcatalog" });
+			string[] logLines = this.getLogLines(fileSystem);
+			Assert.AreEqual(3, logLines.Length); // Last line is just a summary line
+			Assert.AreEqual(@"file3.txt", logLines[0]);
+			Assert.AreEqual(@"subdirX\file3.txt", logLines[1]);
+		}
+
+		public void CatalogCompareUniqueAC()
+		{
+			MockFileSystem fileSystem = this.createMockFileSystem();
+			new CommandRunner(fileSystem, System.IO.TextWriter.Null, System.IO.TextReader.Null).Run(new[] { "catalog-create", @"C:\folderA" });
+			new CommandRunner(fileSystem, System.IO.TextWriter.Null, System.IO.TextReader.Null).Run(new[] { "catalog-create", @"C:\folderC" });
+			new CommandRunner(fileSystem, System.IO.TextWriter.Null, System.IO.TextReader.Null).Run(new[] { "catalog-compare-unique", "--log", @"C:\folderA\.kcatalog", @"C:\folderC\.kcatalog" });
+			string[] logLines = this.getLogLines(fileSystem);
+			Assert.AreEqual(2, logLines.Length); // Last line is just a summary line
+			Assert.AreEqual(@"subdirZ\file5.txt", logLines[0]);
+		}
+
+		public void CatalogCompareUniqueCA()
+		{
+			MockFileSystem fileSystem = this.createMockFileSystem();
+			new CommandRunner(fileSystem, System.IO.TextWriter.Null, System.IO.TextReader.Null).Run(new[] { "catalog-create", @"C:\folderA" });
+			new CommandRunner(fileSystem, System.IO.TextWriter.Null, System.IO.TextReader.Null).Run(new[] { "catalog-create", @"C:\folderC" });
+			new CommandRunner(fileSystem, System.IO.TextWriter.Null, System.IO.TextReader.Null).Run(new[] { "catalog-compare-unique", "--log", @"C:\folderC\.kcatalog", @"C:\folderA\.kcatalog" });
+			string[] logLines = this.getLogLines(fileSystem);
+			Assert.AreEqual(3, logLines.Length); // Last line is just a summary line
+			Assert.AreEqual(@"file3.txt", logLines[0]);
+			Assert.AreEqual(@"subdirX\file3.txt", logLines[1]);
+		}
+
+		public void CatalogCompareUniqueBC()
+		{
+			MockFileSystem fileSystem = this.createMockFileSystem();
+			new CommandRunner(fileSystem, System.IO.TextWriter.Null, System.IO.TextReader.Null).Run(new[] { "catalog-create", @"C:\folderB" });
+			new CommandRunner(fileSystem, System.IO.TextWriter.Null, System.IO.TextReader.Null).Run(new[] { "catalog-create", @"C:\folderC" });
+			new CommandRunner(fileSystem, System.IO.TextWriter.Null, System.IO.TextReader.Null).Run(new[] { "catalog-compare-unique", "--log", @"C:\folderB\.kcatalog", @"C:\folderC\.kcatalog" });
+			string[] logLines = this.getLogLines(fileSystem);
+			Assert.AreEqual(2, logLines.Length); // Last line is just a summary line
+			Assert.AreEqual(@"subdirZ\file5.txt", logLines[0]);
+		}
+
+		public void CatalogCompareUniqueCB()
+		{
+			MockFileSystem fileSystem = this.createMockFileSystem();
+			new CommandRunner(fileSystem, System.IO.TextWriter.Null, System.IO.TextReader.Null).Run(new[] { "catalog-create", @"C:\folderB" });
+			new CommandRunner(fileSystem, System.IO.TextWriter.Null, System.IO.TextReader.Null).Run(new[] { "catalog-create", @"C:\folderC" });
+			new CommandRunner(fileSystem, System.IO.TextWriter.Null, System.IO.TextReader.Null).Run(new[] { "catalog-compare-unique", "--log", @"C:\folderC\.kcatalog", @"C:\folderB\.kcatalog" });
+			string[] logLines = this.getLogLines(fileSystem);
+			Assert.AreEqual(1, logLines.Length); // Last line is just a summary line
 		}
 
 		#endregion Catalog Commands
 
 		#region Directory Commands
 
-		public void DirectoryCompareAB()
+		public void DirectoryCompareDuplicatesAB()
 		{
 			MockFileSystem fileSystem = this.createMockFileSystem();
-			new CommandRunner(fileSystem, System.IO.TextWriter.Null, System.IO.TextReader.Null).Run(new[] { "dir-compare", "--log", @"C:\folderA", @"C:\folderB" });
+			new CommandRunner(fileSystem, System.IO.TextWriter.Null, System.IO.TextReader.Null).Run(new[] { "dir-compare-duplicates", "--log", @"C:\folderA", @"C:\folderB" });
 			string[] logLines = this.getLogLines(fileSystem);
 			Assert.AreEqual(4, logLines.Length); // Last line is just a summary line
 			Assert.AreEqual(@"file1-diffname.txt", logLines[0]);
@@ -287,10 +353,10 @@ namespace KCatalog.Tests
 			Assert.AreEqual(@"subdirY\file4.txt", logLines[2]);
 		}
 
-		public void DirectoryCompareAB_Delete()
+		public void DirectoryCompareDuplicatesAB_Delete()
 		{
 			MockFileSystem fileSystem = this.createMockFileSystem();
-			new CommandRunner(fileSystem, System.IO.TextWriter.Null, new System.IO.StringReader("yes")).Run(new[] { "dir-compare", "--log", "--delete", @"C:\folderA", @"C:\folderB" });
+			new CommandRunner(fileSystem, System.IO.TextWriter.Null, new System.IO.StringReader("yes")).Run(new[] { "dir-compare-duplicates", "--log", "--delete", @"C:\folderA", @"C:\folderB" });
 			string[] logLines = this.getLogLines(fileSystem);
 			Assert.AreEqual(5, logLines.Length); // Last two lines are just summary lines
 			Assert.AreEqual(@"file1-diffname.txt", logLines[0]);
@@ -300,10 +366,10 @@ namespace KCatalog.Tests
 			Assert.AreEqual(0, filesLeft.Length);
 		}
 
-		public void DirectoryCompareBA()
+		public void DirectoryCompareDuplicatesBA()
 		{
 			MockFileSystem fileSystem = this.createMockFileSystem();
-			new CommandRunner(fileSystem, System.IO.TextWriter.Null, System.IO.TextReader.Null).Run(new[] { "dir-compare", "--log", @"C:\folderB", @"C:\folderA" });
+			new CommandRunner(fileSystem, System.IO.TextWriter.Null, System.IO.TextReader.Null).Run(new[] { "dir-compare-duplicates", "--log", @"C:\folderB", @"C:\folderA" });
 			string[] logLines = this.getLogLines(fileSystem);
 			Assert.AreEqual(5, logLines.Length); // Last line is just a summary line
 			Assert.AreEqual(@"file1.txt", logLines[0]);
@@ -312,10 +378,10 @@ namespace KCatalog.Tests
 			Assert.AreEqual(@"file4-diffname.txt", logLines[3]);
 		}
 
-		public void DirectoryCompareBA_Delete()
+		public void DirectoryCompareDuplicatesBA_Delete()
 		{
 			MockFileSystem fileSystem = this.createMockFileSystem();
-			new CommandRunner(fileSystem, System.IO.TextWriter.Null, new System.IO.StringReader("yes")).Run(new[] { "dir-compare", "--log", "--delete", @"C:\folderB", @"C:\folderA" });
+			new CommandRunner(fileSystem, System.IO.TextWriter.Null, new System.IO.StringReader("yes")).Run(new[] { "dir-compare-duplicates", "--log", "--delete", @"C:\folderB", @"C:\folderA" });
 			string[] logLines = this.getLogLines(fileSystem);
 			Assert.AreEqual(6, logLines.Length); // Last two lines are just summary lines
 			Assert.AreEqual(@"file1.txt", logLines[0]);
@@ -328,10 +394,10 @@ namespace KCatalog.Tests
 			Assert.AreEqual(@"C:\folderA\subdirX\file3.txt", filesLeft[1]);
 		}
 
-		public void DirectoryCompareAC()
+		public void DirectoryCompareDuplicatesAC()
 		{
 			MockFileSystem fileSystem = this.createMockFileSystem();
-			new CommandRunner(fileSystem, System.IO.TextWriter.Null, System.IO.TextReader.Null).Run(new[] { "dir-compare", "--log", @"C:\folderA", @"C:\folderC" });
+			new CommandRunner(fileSystem, System.IO.TextWriter.Null, System.IO.TextReader.Null).Run(new[] { "dir-compare-duplicates", "--log", @"C:\folderA", @"C:\folderC" });
 			string[] logLines = this.getLogLines(fileSystem);
 			Assert.AreEqual(4, logLines.Length); // Last line is just a summary line
 			Assert.AreEqual(@"file1-diffname.txt", logLines[0]);
@@ -339,10 +405,10 @@ namespace KCatalog.Tests
 			Assert.AreEqual(@"subdirY\file4.txt", logLines[2]);
 		}
 
-		public void DirectoryCompareAC_Delete()
+		public void DirectoryCompareDuplicatesAC_Delete()
 		{
 			MockFileSystem fileSystem = this.createMockFileSystem();
-			new CommandRunner(fileSystem, System.IO.TextWriter.Null, new System.IO.StringReader("yes")).Run(new[] { "dir-compare", "--log", "--delete", @"C:\folderA", @"C:\folderC" });
+			new CommandRunner(fileSystem, System.IO.TextWriter.Null, new System.IO.StringReader("yes")).Run(new[] { "dir-compare-duplicates", "--log", "--delete", @"C:\folderA", @"C:\folderC" });
 			string[] logLines = this.getLogLines(fileSystem);
 			Assert.AreEqual(5, logLines.Length); // Last two lines are just summary lines
 			Assert.AreEqual(@"file1-diffname.txt", logLines[0]);
@@ -353,10 +419,10 @@ namespace KCatalog.Tests
 			Assert.AreEqual(@"C:\folderC\subdirZ\file5.txt", filesLeft[0]);
 		}
 
-		public void DirectoryCompare_DeclineDelete()
+		public void DirectoryCompareDuplicates_DeclineDelete()
 		{
 			MockFileSystem fileSystem = this.createMockFileSystem();
-			Assert.Throws<OperationCanceledException>(() => new CommandRunner(fileSystem, System.IO.TextWriter.Null, new System.IO.StringReader("notyes")).Run(new[] { "dir-compare", "--delete", @"C:\folderA", @"C:\folderB" }));
+			Assert.Throws<OperationCanceledException>(() => new CommandRunner(fileSystem, System.IO.TextWriter.Null, new System.IO.StringReader("notyes")).Run(new[] { "dir-compare-duplicates", "--delete", @"C:\folderA", @"C:\folderB" }));
 		}
 
 		#endregion Directory Commands

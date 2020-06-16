@@ -50,11 +50,14 @@ namespace KCatalog
 				{ "catalog-update", new Tuple<Action<Dictionary<string, object>>, string, string>(this.commandCatalogUpdate, "[--dryrun] <CatalogFile>",
 					"Catalogs all new files in the directory of <CatalogFile> and its subdirectories that have been added or removed since when the catalog was taken. This command only checks for new or deleted files, it does not check file contents or hashes of existing already cataloged files. If --dryrun is specified the catalog won't actually be updated and instead the new and deleted files will only be listed.") },
 
-				{ "catalog-compare", new Tuple<Action<Dictionary<string, object>>, string, string>(this.commandCatalogCompare, "[--delete] <BaseCatalogFile> <OtherCatalogFile>",
-					"Finds all files in <OtherCatalogFile> that are already cataloged by <BaseCatalogFile> (i.e. files in <OtherCatalogFile> that duplicate files in <BaseCatalogFile>). This ignores file paths and file names, it only compares file contents/hashes (so files are still considered duplicate if they have the same content but different file nameS). This command will list the duplicated files that are found. If --delete is specified the duplicated files will also be deleted from the directory of <OtherCatalogFile>. This is the same as 'dir-compare' but faster since the cataloging has already been done. Be sure both catalogs are up-to-date (using 'catalog-create' or 'catalog-update').") },
+				{ "catalog-compare-duplicates", new Tuple<Action<Dictionary<string, object>>, string, string>(this.commandCatalogCompareDuplicates, "[--delete] <BaseCatalogFile> <OtherCatalogFile>",
+					"Finds all files in <OtherCatalogFile> that are already cataloged by <BaseCatalogFile> (i.e. files in <OtherCatalogFile> that duplicate files in <BaseCatalogFile>). This ignores file paths and file names, it only compares file contents/hashes (so files are considered duplicate if they have the same content but different file names). This command will list the duplicated files that are found. If --delete is specified the duplicated files will also be deleted from the directory of <OtherCatalogFile>. This is the same as 'dir-compare-duplicates' but faster since the cataloging has already been done. Be sure both catalogs are up-to-date (using 'catalog-create' or 'catalog-update').") },
 
-				{ "dir-compare", new Tuple<Action<Dictionary<string, object>>, string, string>(this.commandDirectoryCompare, "[--delete] <BaseDirectory> <OtherDirectory>",
-					"Finds all files in <OtherDirectory> that exist in <BaseDirectory> (i.e. files in <OtherDirectory> that duplicate files in <BaseCatalogFile>). This ignores file paths and file names, it only compares file contents/hashes (so files are still considered duplicate if they have the same content but different file nameS). This command will list the duplicated files that are found. If --delete is specified the duplicated files will also be deleted from <OtherDirectory>. This is the same as 'catalog-compare' but slower since both directories need to be cataloged first (these catalogs will not be saved).") },
+				{ "catalog-compare-unique", new Tuple<Action<Dictionary<string, object>>, string, string>(this.commandCatalogCompareUnique, "<BaseCatalogFile> <OtherCatalogFile>",
+					"Finds all files in <OtherCatalogFile> that are _not_ cataloged by <BaseCatalogFile> (i.e. files in <OtherCatalogFile> that are unique and not in <BaseCatalogFile>). This ignores file paths and file names, it only compares file contents/hashes (so files are considered duplicate if they have the same content but different file names). This command will list the unique files that are found. Be sure both catalogs are up-to-date (using 'catalog-create' or 'catalog-update').") },
+
+				{ "dir-compare-duplicates", new Tuple<Action<Dictionary<string, object>>, string, string>(this.commandDirectoryCompareDuplicate, "[--delete] <BaseDirectory> <OtherDirectory>",
+					"Finds all files in <OtherDirectory> that exist in <BaseDirectory> (i.e. files in <OtherDirectory> that duplicate files in <BaseCatalogFile>). This ignores file paths and file names, it only compares file contents/hashes (so files are still considered duplicate if they have the same content but different file nameS). This command will list the duplicated files that are found. If --delete is specified the duplicated files will also be deleted from <OtherDirectory>. This is the same as 'catalog-compare-duplicates' but slower since both directories need to be cataloged first (these catalogs will not be saved).") },
 
 				{ "dir-search", new Tuple<Action<Dictionary<string, object>>, string, string>(this.commandDirectorySearch, "[--norecursive] [--delete] <DirectoryToSearch> <FileNamePattern>",
 					"Finds all files in <DirectoryToSearch> and its subdirectories (unless --norecursive is specified) matching <FileNamePattern>. This command will list the files that are found. The pattern is Windows file system pattern matching (not regex). If --delete is specified they will also be deleted. This is useful for purging files like thumbs.db.") },
@@ -349,7 +352,7 @@ namespace KCatalog
 			}
 		}
 
-		private void commandCatalogCompare(Dictionary<string, object> arguments)
+		private void commandCatalogCompareDuplicates(Dictionary<string, object> arguments)
 		{
 			bool shouldDelete = arguments.ContainsKey("--delete");
 
@@ -360,10 +363,22 @@ namespace KCatalog
 
 			Catalog baseCatalog = Catalog.Read(baseCatalogFile);
 			Catalog otherCatalog = Catalog.Read(otherCatalogFile);
-			this.compareCatalogs(baseCatalogFile.Directory, baseCatalog, otherCatalogFile.Directory, otherCatalog, shouldDelete);
+			this.compareCatalogsForDuplicates(baseCatalogFile.Directory, baseCatalog, otherCatalogFile.Directory, otherCatalog, shouldDelete);
 		}
 
-		private void commandDirectoryCompare(Dictionary<string, object> arguments)
+		private void commandCatalogCompareUnique(Dictionary<string, object> arguments)
+		{
+			IFileInfo baseCatalogFile = (IFileInfo)arguments["BaseCatalogFile"];
+			if (!baseCatalogFile.Exists) { throw new CommandLineArgumentException("<BaseCatalogFile>", "Catalog file does not exist."); }
+			IFileInfo otherCatalogFile = (IFileInfo)arguments["OtherCatalogFile"];
+			if (!otherCatalogFile.Exists) { throw new CommandLineArgumentException("<OtherCatalogFile>", "Catalog file does not exist."); }
+
+			Catalog baseCatalog = Catalog.Read(baseCatalogFile);
+			Catalog otherCatalog = Catalog.Read(otherCatalogFile);
+			this.compareCatalogsForUnique(baseCatalogFile.Directory, baseCatalog, otherCatalogFile.Directory, otherCatalog);
+		}
+
+		private void commandDirectoryCompareDuplicate(Dictionary<string, object> arguments)
 		{
 			bool shouldDelete = arguments.ContainsKey("--delete");
 
@@ -393,7 +408,7 @@ namespace KCatalog
 				allErrors.ForEach((error) => this.log($"  {error}"));
 			}
 
-			this.compareCatalogs(baseDirectory, baseCatalog, otherDirectory, otherCatalog, shouldDelete);
+			this.compareCatalogsForDuplicates(baseDirectory, baseCatalog, otherDirectory, otherCatalog, shouldDelete);
 		}
 
 		private void commandDirectorySearch(Dictionary<string, object> arguments)
@@ -536,7 +551,7 @@ namespace KCatalog
 		/// <summary>
 		/// Compares two cataloged directories and lists all the files in the 'other' directory that duplicate files in the 'base' directory, with the option of deleting those files.
 		/// </summary>
-		private void compareCatalogs(IDirectoryInfo baseDirectory, Catalog baseCatalog, IDirectoryInfo otherDirectory, Catalog otherCatalog, bool shouldDelete)
+		private void compareCatalogsForDuplicates(IDirectoryInfo baseDirectory, Catalog baseCatalog, IDirectoryInfo otherDirectory, Catalog otherCatalog, bool shouldDelete)
 		{
 			List<FileInstance> fileInstancesToDelete = new List<FileInstance>();
 			foreach (FileInstance otherFileInstance in otherCatalog.FileInstances)
@@ -577,6 +592,24 @@ namespace KCatalog
 					this.log($"Deleted {deletedCount} files.");
 				}
 			}
+		}
+
+		/// <summary>
+		/// Compares two cataloged directories and lists all the files in the 'other' directory that are unique (not in 'base' directory).
+		/// </summary>
+		private void compareCatalogsForUnique(IDirectoryInfo baseDirectory, Catalog baseCatalog, IDirectoryInfo otherDirectory, Catalog otherCatalog)
+		{
+			List<FileInstance> uniqueFileInstances = new List<FileInstance>();
+			foreach (FileInstance otherFileInstance in otherCatalog.FileInstances)
+			{
+				IReadOnlyList<FileInstance> matchingBaseFileInstances = baseCatalog.FindFiles(otherFileInstance.FileContentsHash);
+				if (!matchingBaseFileInstances.Any())
+				{
+					uniqueFileInstances.Add(otherFileInstance);
+					this.log(otherFileInstance.RelativePath);
+				}
+			}
+			this.log($"Found {uniqueFileInstances.Count} unique files in '{otherDirectory}' not in '{baseDirectory}'.");
 		}
 
 		#endregion Helpers
