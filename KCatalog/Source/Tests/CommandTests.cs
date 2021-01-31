@@ -121,9 +121,9 @@ namespace KCatalog.Tests
 			new CommandRunner(fileSystem, System.IO.TextWriter.Null, System.IO.TextReader.Null).Run(new[] { "catalog-update", "--log", @"C:\folderA\.kcatalog" });
 			string[] logLines = this.getLogLines(fileSystem);
 			Assert.AreEqual(3, logLines.Length);
-			Assert.AreEqual(@"Removed: file3.txt", logLines[0]);
-			Assert.AreEqual(@"Added  : newfile1.txt", logLines[1]);
-			Assert.AreEqual(@"Added  : subdirW\newfile2.txt", logLines[2]);
+			Assert.AreEqual(@"Added  : newfile1.txt", logLines[0]);
+			Assert.AreEqual(@"Added  : subdirW\newfile2.txt", logLines[1]);
+			Assert.AreEqual(@"Removed: file3.txt", logLines[2]);
 			Catalog catalog = Catalog.Read(fileSystem.FileInfo.FromFileName(@"C:\folderA\.kcatalog"));
 			Assert.AreNotEqual(catalog.CatalogedOn, catalog.UpdatedOn);
 			Assert.AreEqual(@"C:\folderA", catalog.BaseDirectoryPath);
@@ -146,6 +146,17 @@ namespace KCatalog.Tests
 			Assert.IsFalse(catalog.FileInstancesByPath.ContainsKey("file3.txt"));
 		}
 
+		public void CatalogUpdateA_Changes_MovedFile()
+		{
+			MockFileSystem fileSystem = this.createMockFileSystem();
+			new CommandRunner(fileSystem, System.IO.TextWriter.Null, System.IO.TextReader.Null).Run(new[] { "catalog-create", @"C:\folderA" });
+			fileSystem.File.Move(@"C:\folderA\file3.txt", @"C:\folderA\newname.txt");
+			new CommandRunner(fileSystem, System.IO.TextWriter.Null, System.IO.TextReader.Null).Run(new[] { "catalog-update", "--log", @"C:\folderA\.kcatalog" });
+			string[] logLines = this.getLogLines(fileSystem);
+			Assert.AreEqual(1, logLines.Length);
+			Assert.AreEqual(@"Moved  : newname.txt (from file3.txt)", logLines[0]);
+		}
+
 		public void CatalogCheckA_Changes_DryRun()
 		{
 			MockFileSystem fileSystem = this.createMockFileSystem();
@@ -157,14 +168,14 @@ namespace KCatalog.Tests
 			new CommandRunner(fileSystem, System.IO.TextWriter.Null, System.IO.TextReader.Null).Run(new[] { "catalog-update", "--log", "--dryrun", @"C:\folderA\.kcatalog" });
 			string[] logLines = this.getLogLines(fileSystem);
 			Assert.AreEqual(3, logLines.Length);
-			Assert.AreEqual(@"Removed: file3.txt", logLines[0]);
-			Assert.AreEqual(@"Added  : newfile1.txt", logLines[1]);
-			Assert.AreEqual(@"Added  : subdirW\newfile2.txt", logLines[2]);
+			Assert.AreEqual(@"Added  : newfile1.txt", logLines[0]);
+			Assert.AreEqual(@"Added  : subdirW\newfile2.txt", logLines[1]);
+			Assert.AreEqual(@"Removed: file3.txt", logLines[2]);
 			Catalog catalog = Catalog.Read(fileSystem.FileInfo.FromFileName(@"C:\folderA\.kcatalog"));
 			Assert.AreEqual(catalog.CatalogedOn, catalog.UpdatedOn);
 		}
 
-		public void CatalogUpdate_Moved()
+		public void CatalogUpdate_MovedCatalog()
 		{
 			MockFileSystem fileSystem = this.createMockFileSystem();
 			new CommandRunner(fileSystem, System.IO.TextWriter.Null, System.IO.TextReader.Null).Run(new[] { "catalog-create", @"C:\folderA" });

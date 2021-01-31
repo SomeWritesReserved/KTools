@@ -326,23 +326,39 @@ namespace KCatalog
 			this.outputWriter.WriteLine($"Found {foundFiles.Count} files.");
 
 			bool hasChanges = false;
+			Dictionary<Hash256, FileInstance> removedFileHashes = new Dictionary<Hash256, FileInstance>();
 			HashSet<FileInstance> newFileInstances = new HashSet<FileInstance>(originalCatalog.FileInstances);
+
 			foreach (FileInstance fileInstance in originalCatalog.FileInstances)
 			{
 				if (!foundFiles.Remove(fileInstance.RelativePath))
 				{
-					this.log($"Removed: {fileInstance.RelativePath}");
 					newFileInstances.Remove(fileInstance);
+					removedFileHashes.Add(fileInstance.FileContentsHash, fileInstance);
 					hasChanges = true;
 				}
 			}
 
 			foreach (KeyValuePair<string, IFileInfo> leftOverFile in foundFiles.OrderBy((kvp) => kvp.Key))
 			{
-				this.log($"Added  : {leftOverFile.Key}");
 				FileInstance fileInstance = this.createFileInstance(catalogedDirectory, leftOverFile.Value);
+				if (removedFileHashes.TryGetValue(fileInstance.FileContentsHash, out FileInstance removedFileInstance))
+				{
+					this.log($"Moved  : {leftOverFile.Key} (from {removedFileInstance.RelativePath})");
+					removedFileHashes.Remove(removedFileInstance.FileContentsHash);
+				}
+				else
+				{
+					this.log($"Added  : {leftOverFile.Key}");
+				}
 				newFileInstances.Add(fileInstance);
 				hasChanges = true;
+			}
+
+			foreach (FileInstance removedFileInstance in removedFileHashes.Values)
+			{
+				// These are all the files left over that haven't been detected as moved, so they are truly removed
+				this.log($"Removed: {removedFileInstance.RelativePath}");
 			}
 
 			if (!isDryRun && hasChanges)
