@@ -83,12 +83,15 @@ namespace KCatalog.Tests
 				{ @"C:\NewPhotos\2\IMG_20200303_213129184.jpg", new MockFileData("") },
 				{ @"C:\NewPhotos\2\IMG_20190830_172847_01.jpg", new MockFileData("") },
 			}, @"C:\KCatalog");
-			new CommandRunner(fileSystem, System.IO.TextWriter.Null, System.IO.TextReader.Null).Run(new[] { "photo-archive", "--log", @"C:\NewPhotos", @"C:\Archive\Photos" });
+			fileSystem.AddDirectory(@"C:\Archive\Photos");
+			new CommandRunner(fileSystem, System.IO.TextWriter.Null, System.IO.TextReader.Null).Run(new[] { "catalog-create", @"C:\Archive\Photos" });
+			new CommandRunner(fileSystem, System.IO.TextWriter.Null, System.IO.TextReader.Null).Run(new[] { "photo-archive", "--log", @"C:\NewPhotos", @"C:\Archive\Photos\.kcatalog" });
 			string[] logLines = this.getLogLines(fileSystem);
 			Assert.AreEqual(0, logLines.Length);
 			Assert.AreEqual(0, fileSystem.Directory.GetFiles(@"C:\NewPhotos", "*", System.IO.SearchOption.AllDirectories).Length);
 			string[] archivedFiles = fileSystem.Directory.GetFiles(@"C:\Archive\Photos", "*", System.IO.SearchOption.AllDirectories);
-			Assert.AreEqual(15, archivedFiles.Length);
+			Assert.AreEqual(16, archivedFiles.Length);
+			Assert.IsTrue(archivedFiles.Contains(@"C:\Archive\Photos\.kcatalog"));
 			Assert.IsTrue(archivedFiles.Contains(@"C:\Archive\Photos\2019\12-December\12-27-2019\20191227_134135627.jpg"));
 			Assert.IsTrue(archivedFiles.Contains(@"C:\Archive\Photos\2020\03-March\03-05-2020\20200305_121959365_HDR.jpg"));
 			Assert.IsTrue(archivedFiles.Contains(@"C:\Archive\Photos\2020\03-March\03-05-2020\20200305_122004044_HDR.jpg"));
@@ -106,6 +109,38 @@ namespace KCatalog.Tests
 			Assert.IsTrue(archivedFiles.Contains(@"C:\Archive\Photos\2019\08-August\08-30-2019\20190830_172847_01.jpg"));
 		}
 		
+		public void PhotoArchive_InCatalog()
+		{
+			MockFileSystem fileSystem = new MockFileSystem(new Dictionary<string, MockFileData>()
+			{
+				{ @"C:\NewPhotos\1\IMG_20191227_134135627.jpg", new MockFileData("FileContents1") },
+				{ @"C:\NewPhotos\1\IMG_20200305_121959365_HDR.jpg", new MockFileData("FileContents2") },
+				{ @"C:\NewPhotos\1\IMG_20200305_122004044_HDR.jpg", new MockFileData("FileContents3") },
+				{ @"C:\NewPhotos\1\20190308_094641268.jpg", new MockFileData("FileContents4") },
+				{ @"C:\NewPhotos\1\19991231_235941268.jpg", new MockFileData("FileContents5") },
+				{ @"C:\NewPhotos\1\IMG_20200308_142308693_HDR.jpg", new MockFileData("FileContents6") },
+				{ @"C:\Archive\Photos\existing\existing6.jpg", new MockFileData("FileContents6") },
+			}, @"C:\KCatalog");
+			fileSystem.AddDirectory(@"C:\Archive\Photos");
+			new CommandRunner(fileSystem, System.IO.TextWriter.Null, System.IO.TextReader.Null).Run(new[] { "catalog-create", @"C:\Archive\Photos" });
+			new CommandRunner(fileSystem, System.IO.TextWriter.Null, System.IO.TextReader.Null).Run(new[] { "photo-archive", "--log", @"C:\NewPhotos", @"C:\Archive\Photos\.kcatalog" });
+			string[] logLines = this.getLogLines(fileSystem);
+			Assert.AreEqual(1, logLines.Length);
+			Assert.IsTrue(logLines.Contains(@"Will not archive file, it is already in the catalog elsewhere: C:\NewPhotos\1\IMG_20200308_142308693_HDR.jpg"));
+			string[] sourceFiles = fileSystem.Directory.GetFiles(@"C:\NewPhotos", "*", System.IO.SearchOption.AllDirectories);
+			Assert.IsTrue(sourceFiles.Contains(@"C:\NewPhotos\1\IMG_20200308_142308693_HDR.jpg"));
+			Assert.AreEqual(1, sourceFiles.Length);
+			string[] archivedFiles = fileSystem.Directory.GetFiles(@"C:\Archive\Photos", "*", System.IO.SearchOption.AllDirectories);
+			Assert.AreEqual(7, archivedFiles.Length);
+			Assert.IsTrue(archivedFiles.Contains(@"C:\Archive\Photos\.kcatalog"));
+			Assert.IsTrue(archivedFiles.Contains(@"C:\Archive\Photos\2019\12-December\12-27-2019\20191227_134135627.jpg"));
+			Assert.IsTrue(archivedFiles.Contains(@"C:\Archive\Photos\2020\03-March\03-05-2020\20200305_121959365_HDR.jpg"));
+			Assert.IsTrue(archivedFiles.Contains(@"C:\Archive\Photos\2020\03-March\03-05-2020\20200305_122004044_HDR.jpg"));
+			Assert.IsTrue(archivedFiles.Contains(@"C:\Archive\Photos\2019\03-March\03-08-2019\20190308_094641268.jpg"));
+			Assert.IsTrue(archivedFiles.Contains(@"C:\Archive\Photos\1999\12-December\12-31-1999\19991231_235941268.jpg"));
+			Assert.IsTrue(archivedFiles.Contains(@"C:\Archive\Photos\existing\existing6.jpg"));
+		}
+
 		public void PhotoArchive_Warnings()
 		{
 			MockFileSystem fileSystem = new MockFileSystem(new Dictionary<string, MockFileData>()
@@ -114,7 +149,9 @@ namespace KCatalog.Tests
 				{ @"C:\NewPhotos\2\IMG_20191227_134135627.jpg", new MockFileData("DiffFileContents567") },
 				{ @"C:\NewPhotos\2\someotherjpg.jpg", new MockFileData("") },
 			}, @"C:\KCatalog");
-			new CommandRunner(fileSystem, System.IO.TextWriter.Null, System.IO.TextReader.Null).Run(new[] { "photo-archive", "--log", @"C:\NewPhotos", @"C:\Archive\Photos" });
+			fileSystem.AddDirectory(@"C:\Archive\Photos");
+			new CommandRunner(fileSystem, System.IO.TextWriter.Null, System.IO.TextReader.Null).Run(new[] { "catalog-create", @"C:\Archive\Photos" });
+			new CommandRunner(fileSystem, System.IO.TextWriter.Null, System.IO.TextReader.Null).Run(new[] { "photo-archive", "--log", @"C:\NewPhotos", @"C:\Archive\Photos\.kcatalog" });
 			string[] logLines = this.getLogLines(fileSystem);
 			Assert.AreEqual(2, logLines.Length);
 			Assert.IsTrue(logLines.Contains(@"Cannot archive file, identical file name already exists with different file contents: C:\NewPhotos\2\IMG_20191227_134135627.jpg to C:\Archive\Photos\2019\12-December\12-27-2019\20191227_134135627.jpg"));
@@ -125,7 +162,8 @@ namespace KCatalog.Tests
 			Assert.IsTrue(sourceFiles.Contains(@"C:\NewPhotos\2\someotherjpg.jpg"));
 			Assert.AreEqual(fileSystem.File.ReadAllText(@"C:\NewPhotos\2\IMG_20191227_134135627.jpg"), "DiffFileContents567");
 			string[] archivedFiles = fileSystem.Directory.GetFiles(@"C:\Archive\Photos", "*", System.IO.SearchOption.AllDirectories);
-			Assert.AreEqual(1, archivedFiles.Length);
+			Assert.AreEqual(2, archivedFiles.Length);
+			Assert.IsTrue(archivedFiles.Contains(@"C:\Archive\Photos\.kcatalog"));
 			Assert.IsTrue(archivedFiles.Contains(@"C:\Archive\Photos\2019\12-December\12-27-2019\20191227_134135627.jpg"));
 			Assert.AreEqual(fileSystem.File.ReadAllText(@"C:\Archive\Photos\2019\12-December\12-27-2019\20191227_134135627.jpg"), "DiffFileContents123");
 		}

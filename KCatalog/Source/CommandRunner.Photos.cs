@@ -31,7 +31,15 @@ namespace KCatalog
 		private void commandPhotoArchive(Dictionary<string, object> arguments)
 		{
 			IDirectoryInfo sourceDirectory = (IDirectoryInfo)arguments["SourceDirectory"];
-			IDirectoryInfo archiveDirectory = (IDirectoryInfo)arguments["ArchiveDirectory"];
+			IFileInfo catalogFile = (IFileInfo)arguments["CatalogFile"];
+			if (!catalogFile.Exists) { throw new CommandLineArgumentException("<CatalogFile>", "Catalog file does not exist."); }
+
+			Catalog catalog = Catalog.Read(catalogFile);
+			IDirectoryInfo archiveDirectory = catalogFile.Directory;
+			if (!archiveDirectory.FullName.Equals(this.fileSystem.DirectoryInfo.FromDirectoryName(catalog.BaseDirectoryPath).FullName, StringComparison.OrdinalIgnoreCase))
+			{
+				throw new CommandLineArgumentException("<CatalogFile>", "Catalog file was moved and does not represent a catalog of the directory it is currently in. Cannot archive to it.");
+			}
 
 			this.outputWriter.Write("Getting files in source directory... ");
 			IFileInfo[] sourceFiles = sourceDirectory.GetFiles("*", SearchOption.AllDirectories);
@@ -49,7 +57,6 @@ namespace KCatalog
 					DateTime dateTime = new DateTime(year, month, day);
 
 					string dayFolderPath = this.fileSystem.Path.Combine(archiveDirectory.FullName, this.getYearFormatted(dateTime), this.getMonthFormatted(dateTime), this.getDayFormatted(dateTime));
-					this.fileSystem.Directory.CreateDirectory(dayFolderPath);
 
 					// We strip the prefix so that photos and videos are all side-by-side, sorted by timestamp
 					string archiveFileName = sourceFile.Name.Substring(prefix.Length);
@@ -69,7 +76,17 @@ namespace KCatalog
 					}
 					else
 					{
-						sourceFile.MoveTo(archiveFilePath);
+						FileInstance sourceFileInstance = this.createFileInstance(sourceDirectory, sourceFile);
+						if (!catalog.FileInstancesByHash.ContainsKey(sourceFileInstance.FileContentsHash))
+						{
+							// Only archive this file if it doesn't already exist in the catalog elsewhere
+							this.fileSystem.Directory.CreateDirectory(this.fileSystem.Path.GetDirectoryName(archiveFilePath));
+							sourceFile.MoveTo(archiveFilePath);
+						}
+						else
+						{
+							this.log($"Will not archive file, it is already in the catalog elsewhere: {sourceFile}");
+						}
 					}
 				}
 				else

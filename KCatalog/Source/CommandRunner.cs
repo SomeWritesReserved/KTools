@@ -65,8 +65,8 @@ namespace KCatalog
 				{ "dir-findempty", new Tuple<Action<Dictionary<string, object>>, string, string>(this.commandDirectoryFindEmpty, "[--delete] <DirectoryToSearch>",
 					"Searches all directories in <DirectoryToSearch> and its subdirectories for empty directories. If --delete is specified they will also be deleted. A directory is empty if it contains no files in itself or any of its subdirectories. This will only print the upper-most directory if all of its subdirectories are also empty.") },
 
-				{ "photo-archive", new Tuple<Action<Dictionary<string, object>>, string, string>(this.commandPhotoArchive, "<SourceDirectory> <ArchiveDirectory>",
-					"Moves all photo and video files from <SourceDirectory> and its subdirectories to <ArchiveDirectory> following the folder structure of YYYY/mm-xxxxx/dd-mm-YYYY. Files will be _moved_, not copied. Photos and videos must have an Android file name format (YYYYmmDD_HHMMSS). Prefixes of IMG_ and VID_ are removed so photos and videos are ordered chronologically side-by-side. Videos will also be re-encoded with VLC to compress them further.") },
+				{ "photo-archive", new Tuple<Action<Dictionary<string, object>>, string, string>(this.commandPhotoArchive, "<SourceDirectory> <CatalogFile>",
+					"Moves all photo and video files from <SourceDirectory> and its subdirectories to the directory archived by <CatalogFile>, following the folder structure of YYYY/mm-xxxxx/dd-mm-YYYY. Files will be _moved_, not copied. Photos and videos must have an Android file name format (YYYYmmDD_HHMMSS). Prefixes of IMG_ and VID_ are removed so photos and videos are ordered chronologically side-by-side.") },
 
 				{ "photo-archive-validate", new Tuple<Action<Dictionary<string, object>>, string, string>(this.commandPhotoArchiveValidate, "<ArchiveDirectory>",
 					"Validates all folders in <ArchiveDirectory> to make sure they match the expected structure of YYYY/mm-xxxxx/dd-mm-YYYY. This command will list any folders that are incorrect (if nothing is listed then all folders are correct).") },
