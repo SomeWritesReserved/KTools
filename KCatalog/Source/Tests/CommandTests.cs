@@ -349,6 +349,31 @@ namespace KCatalog.Tests
 			Assert.AreEqual(1, logLines.Length); // Last line is just a summary line
 		}
 
+		public void CatalogCompareSelf()
+		{
+			MockFileSystem fileSystem = this.createMockFileSystem();
+			new CommandRunner(fileSystem, System.IO.TextWriter.Null, System.IO.TextReader.Null).Run(new[] { "catalog-create", @"C:\" });
+			new CommandRunner(fileSystem, System.IO.TextWriter.Null, System.IO.TextReader.Null).Run(new[] { "catalog-compare-duplicates-self", "--log", @"C:\.kcatalog" });
+			string[] logLines = this.getLogLines(fileSystem);
+			Assert.AreEqual(16, logLines.Length);
+			Assert.AreEqual(@"Duplicate hash: 66ead7c2cfef47c1c915b187514f9e6adf566a89fcf00309319ffcf3d8f56e9a", logLines[0]);
+			Assert.AreEqual(@"	folderA\file1.txt", logLines[1]);
+			Assert.AreEqual(@"	folderB\file1-diffname.txt", logLines[2]);
+			Assert.AreEqual(@"	folderC\file1-diffname.txt", logLines[3]);
+			Assert.AreEqual(@"Duplicate hash: ada7aafe0d877733fda302274d379af7a98adda05e5e3eb12fa94490d32a805a", logLines[4]);
+			Assert.AreEqual(@"	folderA\file2.txt", logLines[5]);
+			Assert.AreEqual(@"	folderB\file2.txt", logLines[6]);
+			Assert.AreEqual(@"	folderC\file2.txt", logLines[7]);
+			Assert.AreEqual(@"Duplicate hash: 96791cc56def3f6ff3350c0db79249a76c64075e9a90ed2802bb953c38b3baf0", logLines[8]);
+			Assert.AreEqual(@"	folderA\file3.txt", logLines[9]);
+			Assert.AreEqual(@"	folderA\subdirX\file3.txt", logLines[10]);
+			Assert.AreEqual(@"Duplicate hash: c6b02004c6560460636ecb508d3bfeddae15576cb24f54af5d059acabc01a658", logLines[11]);
+			Assert.AreEqual(@"	folderA\file4.txt", logLines[12]);
+			Assert.AreEqual(@"	folderA\file4-diffname.txt", logLines[13]);
+			Assert.AreEqual(@"	folderB\subdirY\file4.txt", logLines[14]);
+			Assert.AreEqual(@"	folderC\subdirY\file4.txt", logLines[15]);
+		}
+
 		#endregion Catalog Commands
 
 		#region Directory Commands

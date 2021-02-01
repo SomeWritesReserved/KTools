@@ -53,6 +53,9 @@ namespace KCatalog
 				{ "catalog-compare-duplicates", new Tuple<Action<Dictionary<string, object>>, string, string>(this.commandCatalogCompareDuplicates, "[--delete] <BaseCatalogFile> <OtherCatalogFile>",
 					"Finds all files in <OtherCatalogFile> that are already cataloged by <BaseCatalogFile> (i.e. files in <OtherCatalogFile> that duplicate files in <BaseCatalogFile>). This ignores file paths and file names, it only compares file contents/hashes (so files are considered duplicate if they have the same content but different file names). This command will list the duplicated files that are found. If --delete is specified the duplicated files will also be deleted from the directory of <OtherCatalogFile>. This is the same as 'dir-compare-duplicates' but faster since the cataloging has already been done. Be sure both catalogs are up-to-date (using 'catalog-create' or 'catalog-update').") },
 
+				{ "catalog-compare-duplicates-self", new Tuple<Action<Dictionary<string, object>>, string, string>(this.commandCatalogCompareDuplicatesSelf, "<CatalogFile>",
+					"Finds all files in <CatalogFile> that are cataloged in more than one place (i.e. files in <CatalogFile> that duplicate other files also in <CatalogFile>). This ignores file paths and file names, it only compares file contents/hashes (so files are considered duplicate if they have the same content but different file names). This command will list the duplicated files that are found.") },
+
 				{ "catalog-compare-unique", new Tuple<Action<Dictionary<string, object>>, string, string>(this.commandCatalogCompareUnique, "<BaseCatalogFile> <OtherCatalogFile>",
 					"Finds all files in <OtherCatalogFile> that are _not_ cataloged by <BaseCatalogFile> (i.e. files in <OtherCatalogFile> that are unique and not in <BaseCatalogFile>). This ignores file paths and file names, it only compares file contents/hashes (so files are considered duplicate if they have the same content but different file names). This command will list the unique files that are found. Be sure both catalogs are up-to-date (using 'catalog-create' or 'catalog-update').") },
 
@@ -380,6 +383,22 @@ namespace KCatalog
 			Catalog baseCatalog = Catalog.Read(baseCatalogFile);
 			Catalog otherCatalog = Catalog.Read(otherCatalogFile);
 			this.compareCatalogsForDuplicates(baseCatalogFile.Directory, baseCatalog, otherCatalogFile.Directory, otherCatalog, shouldDelete);
+		}
+
+		private void commandCatalogCompareDuplicatesSelf(Dictionary<string, object> arguments)
+		{
+			IFileInfo catalogFile = (IFileInfo)arguments["CatalogFile"];
+			if (!catalogFile.Exists) { throw new CommandLineArgumentException("<CatalogFile>", "Catalog file does not exist."); }
+
+			Catalog catalog = Catalog.Read(catalogFile);
+			foreach (KeyValuePair<Hash256, IReadOnlyList<FileInstance>> duplicatedFile in catalog.FileInstancesByHash.Where((kvp) => kvp.Value.Count() > 1))
+			{
+				this.log($"Duplicate hash: {duplicatedFile.Key}");
+				foreach (FileInstance duplicateFileInstance in duplicatedFile.Value)
+				{
+					this.log($"\t{duplicateFileInstance.RelativePath}");
+				}
+			}
 		}
 
 		private void commandCatalogCompareUnique(Dictionary<string, object> arguments)
