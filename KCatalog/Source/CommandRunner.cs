@@ -337,7 +337,11 @@ namespace KCatalog
 				if (!foundFiles.Remove(fileInstance.RelativePath))
 				{
 					newFileInstances.Remove(fileInstance);
-					removedFileHashes.Add(fileInstance.FileContentsHash, fileInstance);
+					if (!removedFileHashes.ContainsKey(fileInstance.FileContentsHash))
+					{
+						// Only add the first removed file instance which is probably the oldest one
+						removedFileHashes.Add(fileInstance.FileContentsHash, fileInstance);
+					}
 					hasChanges = true;
 				}
 			}
@@ -347,27 +351,40 @@ namespace KCatalog
 				FileInstance fileInstance = this.createFileInstance(catalogedDirectory, leftOverFile.Value);
 				if (removedFileHashes.TryGetValue(fileInstance.FileContentsHash, out FileInstance removedFileInstance))
 				{
-					this.log($"Moved  : {leftOverFile.Key} (from {removedFileInstance.RelativePath})");
+					this.log($"File moved       : {leftOverFile.Key} (from {removedFileInstance.RelativePath})");
 					removedFileHashes.Remove(removedFileInstance.FileContentsHash);
 				}
 				else
 				{
-					this.log($"Added  : {leftOverFile.Key}");
+					this.log($"New file added   : {leftOverFile.Key}");
 				}
 				newFileInstances.Add(fileInstance);
 				hasChanges = true;
 			}
 
-			foreach (FileInstance removedFileInstance in removedFileHashes.Values)
-			{
-				// These are all the files left over that haven't been detected as moved, so they are truly removed
-				this.log($"Removed: {removedFileInstance.RelativePath}");
-			}
-
-			if (!isDryRun && hasChanges)
+			if (hasChanges)
 			{
 				Catalog updatedCatalog = new Catalog(originalCatalog.BaseDirectoryPath, originalCatalog.CatalogedOn, DateTime.Now, newFileInstances);
-				updatedCatalog.Write(catalogFile);
+
+				foreach (FileInstance removedFileInstance in removedFileHashes.Values)
+				{
+					// These are all the files left over that haven't been detected as moved
+					if (updatedCatalog.FileInstancesByHash.TryGetValue(removedFileInstance.FileContentsHash, out IReadOnlyList<FileInstance> otherFileInstances))
+					{
+						// In this case there are files that still exist with the same hash, so all we've done is remove a duplicate
+						this.log($"Duplicate removed: {removedFileInstance.RelativePath} (from {otherFileInstances.First().RelativePath})");
+					}
+					else
+					{
+						// No duplicates, no newly files to be a move, it is truly removed
+						this.log($"File deleted     : {removedFileInstance.RelativePath}");
+					}
+				}
+
+				if (!isDryRun)
+				{
+					updatedCatalog.Write(catalogFile);
+				}
 			}
 		}
 
