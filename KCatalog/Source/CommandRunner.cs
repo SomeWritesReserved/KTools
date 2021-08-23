@@ -59,6 +59,9 @@ namespace KCatalog
 				{ "catalog-compare-unique", new Tuple<Action<Dictionary<string, object>>, string, string>(this.commandCatalogCompareUnique, "<BaseCatalogFile> <OtherCatalogFile>",
 					"Finds all files in <OtherCatalogFile> that are _not_ cataloged by <BaseCatalogFile> (i.e. files in <OtherCatalogFile> that are unique and not in <BaseCatalogFile>). This ignores file paths and file names, it only compares file contents/hashes (so files are considered duplicate if they have the same content but different file names). This command will list the unique files that are found. Be sure both catalogs are up-to-date (using 'catalog-create' or 'catalog-update').") },
 
+				{ "catalog-find-unbackedup", new Tuple<Action<Dictionary<string, object>>, string, string>(this.commandCatalogFindUnbackedup, "<BaseCatalogFile> <ReadOnlyCatalogDirectory>",
+					"Finds all files in <BaseCatalogFile> that are _not_ cataloged by any of the catalogs in <ReadOnlyCatalogDirectory> (i.e. files in <BaseCatalogFile> that haven't been backed up to read-only media yet). Use this to determine what files need to be backed up and how much space it would take.") },
+
 				{ "dir-compare-duplicates", new Tuple<Action<Dictionary<string, object>>, string, string>(this.commandDirectoryCompareDuplicate, "[--delete] <BaseDirectory> <OtherDirectory>",
 					"Finds all files in <OtherDirectory> that exist in <BaseDirectory> (i.e. files in <OtherDirectory> that duplicate files in <BaseCatalogFile>). This ignores file paths and file names, it only compares file contents/hashes (so files are still considered duplicate if they have the same content but different file nameS). This command will list the duplicated files that are found. If --delete is specified the duplicated files will also be deleted from <OtherDirectory>. This is the same as 'catalog-compare-duplicates' but slower since both directories need to be cataloged first (these catalogs will not be saved).") },
 
@@ -428,6 +431,36 @@ namespace KCatalog
 			Catalog baseCatalog = Catalog.Read(baseCatalogFile);
 			Catalog otherCatalog = Catalog.Read(otherCatalogFile);
 			this.compareCatalogsForUnique(baseCatalogFile.Directory, baseCatalog, otherCatalogFile.Directory, otherCatalog);
+		}
+
+		private void commandCatalogFindUnbackedup(Dictionary<string, object> arguments)
+		{
+			IFileInfo baseCatalogFile = (IFileInfo)arguments["BaseCatalogFile"];
+			if (!baseCatalogFile.Exists) { throw new CommandLineArgumentException("<BaseCatalogFile>", "Catalog file does not exist."); }
+			IDirectoryInfo readOnlyCatalogDirectory = (IDirectoryInfo)arguments["ReadOnlyCatalogDirectory"];
+			if (!readOnlyCatalogDirectory.Exists) { throw new CommandLineArgumentException("<ReadOnlyCatalogDirectory>", "Directory does not exist."); }
+
+			Catalog baseCatalog = Catalog.Read(baseCatalogFile);
+			List<Catalog> readOnlyCatalogs = readOnlyCatalogDirectory.GetFiles("*.kcatalog", System.IO.SearchOption.TopDirectoryOnly)
+				.Select((catalogFile) => Catalog.Read(catalogFile))
+				.ToList();
+
+			long totalCountUnbackedup = 0;
+			long totalFileSizeUnbackedup = 0;
+			foreach (KeyValuePair<Hash256, IReadOnlyList<FileInstance>> fileInstanceByHash in baseCatalog.FileInstancesByHash
+				.OrderBy((instance) => instance.Value.First().RelativePath))
+			{
+				if (readOnlyCatalogs.Any((readOnlyCatalog) => readOnlyCatalog.FileInstancesByHash.ContainsKey(fileInstanceByHash.Key)))
+				{
+					continue;
+				}
+
+				string otherLocationText = fileInstanceByHash.Value.Count > 1 ? $"({fileInstanceByHash.Value.Count - 1} other locations)" : "";
+				this.log($"{fileInstanceByHash.Value.First().RelativePath} {fileInstanceByHash.Key} {otherLocationText}");
+				totalCountUnbackedup++;
+				totalFileSizeUnbackedup += fileInstanceByHash.Value.First().FileSize;
+			}
+			this.log($"{totalCountUnbackedup} files not backed up, with {totalFileSizeUnbackedup} bytes ({totalFileSizeUnbackedup / 1024 / 1024 / 1024} GB).");
 		}
 
 		private void commandDirectoryCompareDuplicate(Dictionary<string, object> arguments)
