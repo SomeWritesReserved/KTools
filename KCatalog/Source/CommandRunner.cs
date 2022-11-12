@@ -59,8 +59,8 @@ namespace KCatalog
 				{ "catalog-compare-unique", new Tuple<Action<Dictionary<string, object>>, string, string>(this.commandCatalogCompareUnique, "<BaseCatalogFile> <OtherCatalogFile>",
 					"Finds all files in <OtherCatalogFile> that are _not_ cataloged by <BaseCatalogFile> (i.e. files in <OtherCatalogFile> that are unique and not in <BaseCatalogFile>). This ignores file paths and file names, it only compares file contents/hashes (so files are considered duplicate if they have the same content but different file names). This command will list the unique files that are found. Be sure both catalogs are up-to-date (using 'catalog-create' or 'catalog-update').") },
 
-				{ "catalog-find-unbackedup", new Tuple<Action<Dictionary<string, object>>, string, string>(this.commandCatalogFindUnbackedup, "<BaseCatalogFile> <ReadOnlyCatalogDirectory>",
-					"Finds all files in <BaseCatalogFile> that are _not_ cataloged by any of the catalogs in <ReadOnlyCatalogDirectory> (i.e. files in <BaseCatalogFile> that haven't been backed up to read-only media yet). Use this to determine what files need to be backed up and how much space it would take.") },
+				{ "catalog-find-unbackedup", new Tuple<Action<Dictionary<string, object>>, string, string>(this.commandCatalogFindUnbackedup, "[--makebatfiles] <BaseCatalogFile> <ReadOnlyCatalogDirectory>",
+					"Finds all files in <BaseCatalogFile> that are _not_ cataloged by any of the catalogs in <ReadOnlyCatalogDirectory> (i.e. files in <BaseCatalogFile> that haven't been backed up to read-only media yet). Use this to determine what files need to be backed up and how much space it would take. If --makebatfiles is specified the command will write out Windows bat files to copy files to the Windows burning staging folder.") },
 
 				{ "dir-compare-duplicates", new Tuple<Action<Dictionary<string, object>>, string, string>(this.commandDirectoryCompareDuplicate, "[--delete] <BaseDirectory> <OtherDirectory>",
 					"Finds all files in <OtherDirectory> that exist in <BaseDirectory> (i.e. files in <OtherDirectory> that duplicate files in <BaseCatalogFile>). This ignores file paths and file names, it only compares file contents/hashes (so files are still considered duplicate if they have the same content but different file nameS). This command will list the duplicated files that are found. If --delete is specified the duplicated files will also be deleted from <OtherDirectory>. This is the same as 'catalog-compare-duplicates' but slower since both directories need to be cataloged first (these catalogs will not be saved).") },
@@ -439,14 +439,15 @@ namespace KCatalog
 			if (!baseCatalogFile.Exists) { throw new CommandLineArgumentException("<BaseCatalogFile>", "Catalog file does not exist."); }
 			IDirectoryInfo readOnlyCatalogDirectory = (IDirectoryInfo)arguments["ReadOnlyCatalogDirectory"];
 			if (!readOnlyCatalogDirectory.Exists) { throw new CommandLineArgumentException("<ReadOnlyCatalogDirectory>", "Directory does not exist."); }
+			bool shouldMakeBatFiles = arguments.ContainsKey("--makebatfiles");
 
 			Catalog baseCatalog = Catalog.Read(baseCatalogFile);
 			List<Catalog> readOnlyCatalogs = readOnlyCatalogDirectory.GetFiles("*.kcatalog", System.IO.SearchOption.TopDirectoryOnly)
 				.Select((catalogFile) => Catalog.Read(catalogFile))
 				.ToList();
 
-			long totalCountUnbackedup = 0;
-			long totalFileSizeUnbackedup = 0;
+			// First simply get all of the files that need backed up
+			List<FileInstance> allFilesThatNeedBackedUp = new List<FileInstance>();
 			foreach (KeyValuePair<Hash256, IReadOnlyList<FileInstance>> fileInstanceByHash in baseCatalog.FileInstancesByHash
 				.OrderBy((instance) => instance.Value.First().RelativePath))
 			{
@@ -454,13 +455,55 @@ namespace KCatalog
 				{
 					continue;
 				}
-
-				string otherLocationText = fileInstanceByHash.Value.Count > 1 ? $"({fileInstanceByHash.Value.Count - 1} other locations)" : "";
-				this.log($"{fileInstanceByHash.Value.First().RelativePath} {fileInstanceByHash.Key} {otherLocationText}");
-				totalCountUnbackedup++;
-				totalFileSizeUnbackedup += fileInstanceByHash.Value.First().FileSize;
+				allFilesThatNeedBackedUp.Add(fileInstanceByHash.Value.First());
 			}
-			this.log($"{totalCountUnbackedup} files not backed up, with {totalFileSizeUnbackedup} bytes ({totalFileSizeUnbackedup / 1024 / 1024 / 1024} GB).");
+
+			// Then group the files together onto discs that can be burned
+			// This logic will try to collect full directories together onto one disc, so files in a directory are not split across two discs
+			const long maxDiscSize = 24_000_000_000 /*blu-ray disc size that Windows will accept*/;
+			long currentDiscTotalSize = 0;
+			int currentDiscNumber = 1;
+			Dictionary<int, List<string>> allDiscsBatFileLines = new Dictionary<int, List<string>>() { { currentDiscNumber, new List<string>() } };
+			IEnumerable<FileInstance> remainingFilesThatNeedBackedUp = allFilesThatNeedBackedUp;
+			while (remainingFilesThatNeedBackedUp.Any())
+			{
+				FileInstance firstFileInFolder = remainingFilesThatNeedBackedUp.First();
+				List<FileInstance> filesInSameFolder = remainingFilesThatNeedBackedUp
+					.TakeWhile((instance) => System.IO.Path.GetDirectoryName(instance.RelativePath) == System.IO.Path.GetDirectoryName(firstFileInFolder.RelativePath))
+					.ToList();
+				remainingFilesThatNeedBackedUp = remainingFilesThatNeedBackedUp.Skip(filesInSameFolder.Count);
+
+				long sizeOfFolder = filesInSameFolder.Sum((instance) => instance.FileSize);
+				if (currentDiscTotalSize + sizeOfFolder > maxDiscSize)
+				{
+					this.log($"# Filled disc {currentDiscNumber}, with {currentDiscTotalSize} bytes ({currentDiscTotalSize / 1024.0 / 1024.0 / 1024.0:0.000} GB).");
+					currentDiscTotalSize = 0;
+					currentDiscNumber++;
+					allDiscsBatFileLines.Add(currentDiscNumber, new List<string>());
+				}
+				currentDiscTotalSize += sizeOfFolder;
+
+				foreach (FileInstance fileInstanceInFolder in filesInSameFolder)
+				{
+					allDiscsBatFileLines[currentDiscNumber].Add($@"echo F|xcopy ""{baseCatalog.BaseDirectoryPath}\{fileInstanceInFolder.RelativePath}"" ""C:\Users\dexter\AppData\Local\Microsoft\Windows\Burn\Burn\{fileInstanceInFolder.RelativePath}""");
+					this.log($"{fileInstanceInFolder.RelativePath}\t{fileInstanceInFolder.FileContentsHash}\t{fileInstanceInFolder.FileSize}");
+				}
+			}
+			this.log($"# Unfilled disc {currentDiscNumber}, with {currentDiscTotalSize} bytes ({currentDiscTotalSize / 1024.0 / 1024.0 / 1024.0:0.000} GB).");
+
+			// Finally write out the bat files if requested
+			if (shouldMakeBatFiles)
+			{
+				foreach (KeyValuePair<int, List<string>> discBatFileLines in allDiscsBatFileLines)
+				{
+					string batFileName = $"WriteDisc{discBatFileLines.Key}.bat";
+					if (this.fileSystem.File.Exists(batFileName)) { throw new InvalidOperationException($@"Bat file ""{batFileName}"" already exists, canceling."); }
+					this.fileSystem.File.WriteAllLines(batFileName, discBatFileLines.Value);
+				}
+			}
+
+			long totalFileSizeUnbackedup = allFilesThatNeedBackedUp.Sum((instance) => instance.FileSize);
+			this.log($"{allFilesThatNeedBackedUp.Count} files not backed up, with {totalFileSizeUnbackedup} bytes ({totalFileSizeUnbackedup / 1024.0 / 1024.0 / 1024.0:0.000} GB) across {currentDiscNumber} Blu-ray discs.");
 		}
 
 		private void commandDirectoryCompareDuplicate(Dictionary<string, object> arguments)
