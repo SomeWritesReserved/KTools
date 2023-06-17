@@ -17,7 +17,7 @@ namespace KCatalog
 		private static readonly Regex dayDirectoryNameRegex = new Regex(@"(?<month>[01]\d)-(?<day>[0123]\d)-(?<year>[12][09]\d\d)(?<description>.*)");
 
 		/// <summary>A regex for the file name format of a well-formed photo in a day directory.</summary>
-		private static readonly Regex photoFileNameRegex = new Regex(@"(?<prefix>.*?)(?<year>[12][09]\d\d)(?<month>[01]\d)(?<day>[0123]\d)_(?<hour>[012]\d)(?<minute>\d\d)(?<second>\d\d)(?<millisecond>\d\d\d)?(?<suffix>.*?)");
+		private static readonly Regex photoFileNameRegex = new Regex(@"(?<prefix>.*?)(?<year>[12][09]\d\d)(?<month>[01]\d)(?<day>[0123]\d)_(?<hour>[012]\d)(?<minute>\d\d)(?<second>\d\d)(?<millisecond>\d\d\d)(?<suffix>.*)");
 
 		/// <summary>The list of months that are formatted for the desired folder names.</summary>
 		private static readonly string[] photoMonthFolderNames = new string[] { "01-January", "02-February", "03-March", "04-April", "05-May", "06-June", "07-July", "08-August", "09-September", "10-October", "11-November", "12-December" };
@@ -54,12 +54,24 @@ namespace KCatalog
 					int month = int.Parse(match.Groups["month"].Value);
 					int day = int.Parse(match.Groups["day"].Value);
 					int year = int.Parse(match.Groups["year"].Value);
-					DateTime dateTime = new DateTime(year, month, day);
-
-					string dayFolderPath = this.fileSystem.Path.Combine(archiveDirectory.FullName, this.getYearFormatted(dateTime), this.getMonthFormatted(dateTime), this.getDayFormatted(dateTime));
+					int hour = int.Parse(match.Groups["hour"].Value);
+					int minute = int.Parse(match.Groups["minute"].Value);
+					int second = int.Parse(match.Groups["second"].Value);
+					int millisecond = int.Parse(match.Groups["millisecond"].Value);
+					string suffix = match.Groups["suffix"].Value;
+					DateTime dateTime = new DateTime(year, month, day, hour, minute, second, millisecond);
 
 					// We strip the prefix so that photos and videos are all side-by-side, sorted by timestamp
 					string archiveFileName = sourceFile.Name.Substring(prefix.Length);
+
+					if (prefix.Equals("PXL_", StringComparison.OrdinalIgnoreCase))
+					{
+						// Fix the timestamp for Pixel camera photos since the timestamp is in UTC and we want it in local time
+						dateTime = new DateTime(year, month, day, hour, minute, second, millisecond, DateTimeKind.Utc).ToLocalTime();
+						archiveFileName = dateTime.ToString("yyyyMMdd_HHmmssfff") + suffix;
+					}
+
+					string dayFolderPath = this.fileSystem.Path.Combine(archiveDirectory.FullName, this.getYearFormatted(dateTime), this.getMonthFormatted(dateTime), this.getDayFormatted(dateTime));
 					string archiveFilePath = this.fileSystem.Path.Combine(dayFolderPath, archiveFileName);
 
 					if (this.fileSystem.File.Exists(archiveFilePath))

@@ -118,6 +118,7 @@ namespace KCatalog.Tests
 			fileSystem.Directory.CreateDirectory(@"C:\folderA\subdirW");
 			fileSystem.File.WriteAllText(@"C:\folderA\subdirW\newfile2.txt", "newfile2");
 			fileSystem.File.Delete(@"C:\folderA\file3.txt");
+			System.Threading.Thread.Sleep(10);
 			new CommandRunner(fileSystem, System.IO.TextWriter.Null, System.IO.TextReader.Null).Run(new[] { "catalog-update", "--log", @"C:\folderA\.kcatalog" });
 			string[] logLines = this.getLogLines(fileSystem);
 			Assert.AreEqual(3, logLines.Length);

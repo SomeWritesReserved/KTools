@@ -81,7 +81,6 @@ namespace KCatalog.Tests
 				{ @"C:\NewPhotos\2\IMG_20191227_134135627.jpg", new MockFileData("SameFileContents") }, // this will be deleted because it is the same as above
 				{ @"C:\NewPhotos\2\IMG_20200308_163333584.jpg", new MockFileData("") },
 				{ @"C:\NewPhotos\2\IMG_20200303_213129184.jpg", new MockFileData("") },
-				{ @"C:\NewPhotos\2\IMG_20190830_172847_01.jpg", new MockFileData("") },
 			}, @"C:\KCatalog");
 			fileSystem.AddDirectory(@"C:\Archive\Photos");
 			new CommandRunner(fileSystem, System.IO.TextWriter.Null, System.IO.TextReader.Null).Run(new[] { "catalog-create", @"C:\Archive\Photos" });
@@ -90,7 +89,7 @@ namespace KCatalog.Tests
 			Assert.AreEqual(0, logLines.Length);
 			Assert.AreEqual(0, fileSystem.Directory.GetFiles(@"C:\NewPhotos", "*", System.IO.SearchOption.AllDirectories).Length);
 			string[] archivedFiles = fileSystem.Directory.GetFiles(@"C:\Archive\Photos", "*", System.IO.SearchOption.AllDirectories);
-			Assert.AreEqual(16, archivedFiles.Length);
+			Assert.AreEqual(15, archivedFiles.Length);
 			Assert.IsTrue(archivedFiles.Contains(@"C:\Archive\Photos\.kcatalog"));
 			Assert.IsTrue(archivedFiles.Contains(@"C:\Archive\Photos\2019\12-December\12-27-2019\20191227_134135627.jpg"));
 			Assert.IsTrue(archivedFiles.Contains(@"C:\Archive\Photos\2020\03-March\03-05-2020\20200305_121959365_HDR.jpg"));
@@ -106,9 +105,8 @@ namespace KCatalog.Tests
 			Assert.IsTrue(archivedFiles.Contains(@"C:\Archive\Photos\2020\04-April\04-08-2020\20200408_184313175.mp4"));
 			Assert.IsTrue(archivedFiles.Contains(@"C:\Archive\Photos\2020\03-March\03-08-2020\20200308_163333584.jpg"));
 			Assert.IsTrue(archivedFiles.Contains(@"C:\Archive\Photos\2020\03-March\03-03-2020\20200303_213129184.jpg"));
-			Assert.IsTrue(archivedFiles.Contains(@"C:\Archive\Photos\2019\08-August\08-30-2019\20190830_172847_01.jpg"));
 		}
-		
+
 		public void PhotoArchive_InCatalog()
 		{
 			MockFileSystem fileSystem = new MockFileSystem(new Dictionary<string, MockFileData>()
@@ -166,6 +164,32 @@ namespace KCatalog.Tests
 			Assert.IsTrue(archivedFiles.Contains(@"C:\Archive\Photos\.kcatalog"));
 			Assert.IsTrue(archivedFiles.Contains(@"C:\Archive\Photos\2019\12-December\12-27-2019\20191227_134135627.jpg"));
 			Assert.AreEqual(fileSystem.File.ReadAllText(@"C:\Archive\Photos\2019\12-December\12-27-2019\20191227_134135627.jpg"), "DiffFileContents123");
+		}
+
+		public void PhotoArchive_UtcPhotos()
+		{
+			MockFileSystem fileSystem = new MockFileSystem(new Dictionary<string, MockFileData>()
+			{
+				{ @"C:\NewPhotos\1\IMG_20230610_193501325.HDR.jpg", new MockFileData("") }, // 7:35 p.m. EST DST
+				{ @"C:\NewPhotos\1\PXL_20230610_233522836.TS.jpg", new MockFileData("") }, // 7:35 p.m. EST DST, 4 hours off
+				{ @"C:\NewPhotos\2\IMG_20221218_153444962.jpg", new MockFileData("") }, // 3:34 p.m. EST no DST
+				{ @"C:\NewPhotos\2\PXL_20221218_205748161.jpg", new MockFileData("") }, // 3:57 p.m. EST no DST, 5 hours off
+				{ @"C:\NewPhotos\3\PXL_20230115_162236951.TS.mp4", new MockFileData("") }, // 11:22 a.m. EST no DST, 5 hours off
+			}, @"C:\KCatalog");
+			fileSystem.AddDirectory(@"C:\Archive\Photos");
+			new CommandRunner(fileSystem, System.IO.TextWriter.Null, System.IO.TextReader.Null).Run(new[] { "catalog-create", @"C:\Archive\Photos" });
+			new CommandRunner(fileSystem, System.IO.TextWriter.Null, System.IO.TextReader.Null).Run(new[] { "photo-archive", "--log", @"C:\NewPhotos", @"C:\Archive\Photos\.kcatalog" });
+			string[] logLines = this.getLogLines(fileSystem);
+			Assert.AreEqual(0, logLines.Length);
+			Assert.AreEqual(0, fileSystem.Directory.GetFiles(@"C:\NewPhotos", "*", System.IO.SearchOption.AllDirectories).Length);
+			string[] archivedFiles = fileSystem.Directory.GetFiles(@"C:\Archive\Photos", "*", System.IO.SearchOption.AllDirectories);
+			Assert.AreEqual(6, archivedFiles.Length);
+			Assert.IsTrue(archivedFiles.Contains(@"C:\Archive\Photos\.kcatalog"));
+			Assert.IsTrue(archivedFiles.Contains(@"C:\Archive\Photos\2023\06-June\06-10-2023\20230610_193501325.HDR.jpg"));
+			Assert.IsTrue(archivedFiles.Contains(@"C:\Archive\Photos\2023\06-June\06-10-2023\20230610_193522836.TS.jpg"));
+			Assert.IsTrue(archivedFiles.Contains(@"C:\Archive\Photos\2022\12-December\12-18-2022\20221218_153444962.jpg"));
+			Assert.IsTrue(archivedFiles.Contains(@"C:\Archive\Photos\2022\12-December\12-18-2022\20221218_155748161.jpg"));
+			Assert.IsTrue(archivedFiles.Contains(@"C:\Archive\Photos\2023\01-January\01-15-2023\20230115_112236951.TS.mp4"));
 		}
 
 		#endregion Photo
