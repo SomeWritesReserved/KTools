@@ -169,10 +169,6 @@ namespace KCatalog
 					string optionName = allowedOptions[nextOption];
 					if (optionName.StartsWith("Directory") || optionName.EndsWith("Directory"))
 					{
-						if (!arg.EndsWith("/", StringComparison.OrdinalIgnoreCase) && !arg.EndsWith("\\", StringComparison.OrdinalIgnoreCase))
-						{
-							arg += "\\";
-						}
 						try
 						{
 							arguments.Add(optionName, fileSystem.DirectoryInfo.FromDirectoryName(arg));
