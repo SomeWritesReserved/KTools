@@ -284,6 +284,7 @@ namespace KCatalog
 			this.outputWriter.Write("Getting files in directory to catalog... ");
 			IFileInfo[] foundFiles = directoryToCatalog.GetFiles("*", System.IO.SearchOption.AllDirectories)
 				.Where((file) => file.Name != ".kcatalog")
+				.Where((file) => !file.FullName.Contains("\\.git\\"))
 				.ToArray();
 			this.outputWriter.WriteLine($"Found {foundFiles.Length} files.");
 
@@ -328,6 +329,7 @@ namespace KCatalog
 			this.outputWriter.Write("Getting files in cataloged directory... ");
 			Dictionary<string, IFileInfo> foundFiles = catalogedDirectory.GetFiles("*", System.IO.SearchOption.AllDirectories)
 				.Where((file) => file.Name != ".kcatalog")
+				.Where((file) => !file.FullName.Contains("\\.git\\"))
 				.ToDictionary((file) => file.GetRelativePath(catalogedDirectory), (file) => file, StringComparer.OrdinalIgnoreCase);
 			this.outputWriter.WriteLine($"Found {foundFiles.Count} files.");
 

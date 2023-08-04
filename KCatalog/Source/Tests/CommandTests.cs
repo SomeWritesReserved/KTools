@@ -63,6 +63,24 @@ namespace KCatalog.Tests
 			Assert.AreSame(catalog.FileInstancesByPath[@"subdirZ\file5.txt"], catalog.FileInstancesByHash[catalog.FileInstancesByPath[@"subdirZ\file5.txt"].FileContentsHash].Single());
 		}
 
+		public void CatalogCreateGitRepo()
+		{
+			MockFileSystem fileSystem = this.createMockFileSystemWithGitRepo();
+			new CommandRunner(fileSystem, System.IO.TextWriter.Null, System.IO.TextReader.Null).Run(new[] { "catalog-create", @"C:\folderGitRepo" });
+			Assert.IsTrue(fileSystem.File.Exists(@"C:\folderGitRepo\.kcatalog"));
+			Catalog catalog = Catalog.Read(fileSystem.FileInfo.FromFileName(@"C:\folderGitRepo\.kcatalog"));
+			Assert.AreEqual(@"C:\folderGitRepo", catalog.BaseDirectoryPath);
+			Assert.AreEqual(6, catalog.FileInstances.Count);
+			Assert.AreEqual(6, catalog.FileInstancesByPath.Count);
+			Assert.AreEqual(6, catalog.FileInstancesByHash.Count);
+			Assert.AreSame(catalog.FileInstancesByPath[@"file1-diffname.txt"], catalog.FileInstancesByHash[catalog.FileInstancesByPath[@"file1-diffname.txt"].FileContentsHash].Single());
+			Assert.AreSame(catalog.FileInstancesByPath[@"file2.txt"], catalog.FileInstancesByHash[catalog.FileInstancesByPath[@"file2.txt"].FileContentsHash].Single());
+			Assert.AreSame(catalog.FileInstancesByPath[@"subdirY\file4.txt"], catalog.FileInstancesByHash[catalog.FileInstancesByPath[@"subdirY\file4.txt"].FileContentsHash].Single());
+			Assert.AreSame(catalog.FileInstancesByPath[@"subdirZ\file5.txt"], catalog.FileInstancesByHash[catalog.FileInstancesByPath[@"subdirZ\file5.txt"].FileContentsHash].Single());
+			Assert.AreSame(catalog.FileInstancesByPath[@".gitignore"], catalog.FileInstancesByHash[catalog.FileInstancesByPath[@".gitignore"].FileContentsHash].Single());
+			Assert.AreSame(catalog.FileInstancesByPath[@".gitattributes"], catalog.FileInstancesByHash[catalog.FileInstancesByPath[@".gitattributes"].FileContentsHash].Single());
+		}
+
 		public void CatalogCreateDetachedC()
 		{
 			MockFileSystem fileSystem = this.createMockFileSystem();
@@ -184,6 +202,17 @@ namespace KCatalog.Tests
 			Assert.AreEqual(@"New file added   : subdirW\newfile2.txt", logLines[1]);
 			Assert.AreEqual(@"Duplicate removed: file3.txt (from subdirX\file3.txt)", logLines[2]);
 			Catalog catalog = Catalog.Read(fileSystem.FileInfo.FromFileName(@"C:\folderA\.kcatalog"));
+			Assert.AreEqual(catalog.CatalogedOn, catalog.UpdatedOn);
+		}
+
+		public void CatalogUpdateGitRepo_NoChanges()
+		{
+			MockFileSystem fileSystem = this.createMockFileSystemWithGitRepo();
+			new CommandRunner(fileSystem, System.IO.TextWriter.Null, System.IO.TextReader.Null).Run(new[] { "catalog-create", @"C:\folderGitRepo" });
+			new CommandRunner(fileSystem, System.IO.TextWriter.Null, System.IO.TextReader.Null).Run(new[] { "catalog-update", "--log", @"C:\folderGitRepo\.kcatalog" });
+			string[] logLines = this.getLogLines(fileSystem);
+			Assert.AreEqual(0, logLines.Length);
+			Catalog catalog = Catalog.Read(fileSystem.FileInfo.FromFileName(@"C:\folderGitRepo\.kcatalog"));
 			Assert.AreEqual(catalog.CatalogedOn, catalog.UpdatedOn);
 		}
 
@@ -498,6 +527,24 @@ namespace KCatalog.Tests
 				{ @"C:\folderC\file2.txt", new MockFileData("file2") },
 				{ @"C:\folderC\subdirY\file4.txt", new MockFileData("file4") },
 				{ @"C:\folderC\subdirZ\file5.txt", new MockFileData("file5") },
+			}, @"C:\KCatalog");
+		}
+
+		private MockFileSystem createMockFileSystemWithGitRepo()
+		{
+			return new MockFileSystem(new Dictionary<string, MockFileData>()
+			{
+				{ @"C:\folderGitRepo\.git\hooks\update.sample", new MockFileData("?") },
+				{ @"C:\folderGitRepo\.git\objects\3c\f0af3511fa464a8b01ae29ff79860909a4ffff", new MockFileData("file1") },
+				{ @"C:\folderGitRepo\.git\objects\pack\pack-9fb30f8e1085c2240b20a5f440f8c31ff8599fff.pack", new MockFileData("packfilelarge") },
+				{ @"C:\folderGitRepo\.git\HEAD", new MockFileData("master") },
+				{ @"C:\folderGitRepo\.git\index", new MockFileData("1085c22") },
+				{ @"C:\folderGitRepo\file1-diffname.txt", new MockFileData("file1") },
+				{ @"C:\folderGitRepo\file2.txt", new MockFileData("file2") },
+				{ @"C:\folderGitRepo\subdirY\file4.txt", new MockFileData("file4") },
+				{ @"C:\folderGitRepo\subdirZ\file5.txt", new MockFileData("file5") },
+				{ @"C:\folderGitRepo\.gitignore", new MockFileData("+ignore") },
+				{ @"C:\folderGitRepo\.gitattributes", new MockFileData("-crlf") },
 			}, @"C:\KCatalog");
 		}
 
