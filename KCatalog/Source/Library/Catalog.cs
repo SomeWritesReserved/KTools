@@ -34,7 +34,7 @@ namespace KCatalog
 			this.UpdatedOn = updatedOn;
 			this.FileInstances = fileInstances.ToList().AsReadOnly();
 
-			this.FileInstancesByPath = fileInstances.ToDictionary((fileInstance) => fileInstance.RelativePath, (fileInstance) => fileInstance);
+			this.FileInstancesByPath = fileInstances.ToDictionary((fileInstance) => fileInstance.RelativePath, (fileInstance) => fileInstance, StringComparer.OrdinalIgnoreCase);
 			this.FileInstancesByHash = this.FileInstances.GroupBy((fileInstance) => fileInstance.FileContentsHash)
 				.ToDictionary((group) => group.Key, (group) => (IReadOnlyList<FileInstance>)group.ToList().AsReadOnly());
 		}

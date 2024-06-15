@@ -415,6 +415,39 @@ namespace KCatalog.Tests
 			Assert.AreEqual(@"	folderC\subdirY\file4.txt", logLines[15]);
 		}
 
+		public void CatalogCheckFileIntegrity_NoChanges()
+		{
+			MockFileSystem fileSystem = this.createMockFileSystem();
+			fileSystem.Directory.CreateDirectory(fileSystem.Path.GetTempPath());
+			new CommandRunner(fileSystem, System.IO.TextWriter.Null, System.IO.TextReader.Null).Run(new[] { "catalog-create", @"C:\" });
+			new CommandRunner(fileSystem, System.IO.TextWriter.Null, System.IO.TextReader.Null).Run(new[] { "catalog-check-file-integrity", "--log", @"C:\.kcatalog" });
+			string[] logLines = this.getLogLines(fileSystem);
+			Assert.AreEqual(3, logLines.Length);
+			Assert.AreEqual(@"Cataloged 14 files in 'C:\'.", logLines[0]);
+			Assert.IsTrue(logLines[1].StartsWith("Temporary catalog file:"));
+			Assert.AreEqual(@"Found 0 modified files.", logLines[2]);
+		}
+
+		public void CatalogCheckFileIntegrity_WithChanges()
+		{
+			MockFileSystem fileSystem = this.createMockFileSystem();
+			fileSystem.Directory.CreateDirectory(fileSystem.Path.GetTempPath());
+			new CommandRunner(fileSystem, System.IO.TextWriter.Null, System.IO.TextReader.Null).Run(new[] { "catalog-create", @"C:\" });
+			fileSystem.File.WriteAllText(@"C:\folderA\file3.txt", "file3changes");
+			fileSystem.File.WriteAllText(@"C:\folderB\subdirY\file4.txt", "");
+			fileSystem.File.WriteAllText(@"C:\folderC\subdirZ\file5.txt", "\n\n\n\n");
+			fileSystem.File.WriteAllText(@"C:\folderA\file1.txt", "file1"); // unchanged file
+			new CommandRunner(fileSystem, System.IO.TextWriter.Null, System.IO.TextReader.Null).Run(new[] { "catalog-check-file-integrity", "--log", @"C:\.kcatalog" });
+			string[] logLines = this.getLogLines(fileSystem);
+			Assert.AreEqual(6, logLines.Length);
+			Assert.AreEqual(@"Cataloged 14 files in 'C:\'.", logLines[0]);
+			Assert.IsTrue(logLines[1].StartsWith("Temporary catalog file:"));
+			Assert.AreEqual(@"folderA\file3.txt", logLines[2]);
+			Assert.AreEqual(@"folderB\subdirY\file4.txt", logLines[3]);
+			Assert.AreEqual(@"folderC\subdirZ\file5.txt", logLines[4]);
+			Assert.AreEqual(@"Found 3 modified files.", logLines[5]);
+		}
+
 		#endregion Catalog Commands
 
 		#region Directory Commands

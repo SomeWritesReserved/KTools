@@ -50,6 +50,9 @@ namespace KCatalog
 				{ "catalog-update", new Tuple<Action<Dictionary<string, object>>, string, string>(this.commandCatalogUpdate, "[--dryrun] <CatalogFile>",
 					"Catalogs all new files in the directory of <CatalogFile> and its subdirectories that have been added or removed since when the catalog was taken. This command only checks for new or deleted files, it does not check file contents or hashes of existing already cataloged files. If --dryrun is specified the catalog won't actually be updated and instead the new and deleted files will only be listed.") },
 
+				{ "catalog-check-file-integrity", new Tuple<Action<Dictionary<string, object>>, string, string>(this.commandCatalogCheckFileIntegrity, "<CatalogFile>",
+					"Checks all files in the directory of <CatalogFile> and its subdirectories that are already in the catalog, and confirms that they haven't changed. This command checks the contents and hashes of existing already cataloged files, listing those that changed, it will not check for new files. The catalog will not be updated, only modified files will be listed. Useful to check for file corruption or modified files.") },
+
 				{ "catalog-compare-duplicates", new Tuple<Action<Dictionary<string, object>>, string, string>(this.commandCatalogCompareDuplicates, "[--delete] <BaseCatalogFile> <OtherCatalogFile>",
 					"Finds all files in <OtherCatalogFile> that are already cataloged by <BaseCatalogFile> (i.e. files in <OtherCatalogFile> that duplicate files in <BaseCatalogFile>). This ignores file paths and file names, it only compares file contents/hashes (so files are considered duplicate if they have the same content but different file names). This command will list the duplicated files that are found. If --delete is specified the duplicated files will also be deleted from the directory of <OtherCatalogFile>. This is the same as 'dir-compare-duplicates' but faster since the cataloging has already been done. Be sure both catalogs are up-to-date (using 'catalog-create' or 'catalog-update').") },
 
@@ -273,7 +276,7 @@ namespace KCatalog
 			this.catalogCreateCore(directoryToCatalog, catalogFile);
 		}
 
-		private void catalogCreateCore(IDirectoryInfo directoryToCatalog, IFileInfo catalogFile)
+		private Catalog catalogCreateCore(IDirectoryInfo directoryToCatalog, IFileInfo catalogFile)
 		{
 			if (!directoryToCatalog.Exists) { throw new CommandLineArgumentException("<DirectoryToCatalog>", "Directory does not exist."); }
 
@@ -306,6 +309,7 @@ namespace KCatalog
 				this.log($"{errors.Count} errors:");
 				errors.ForEach((error) => this.log($"  {error}"));
 			}
+			return catalog;
 		}
 
 		private void commandCatalogUpdate(Dictionary<string, object> arguments)
@@ -387,6 +391,38 @@ namespace KCatalog
 					updatedCatalog.Write(catalogFile);
 				}
 			}
+		}
+
+		private void commandCatalogCheckFileIntegrity(Dictionary<string, object> arguments)
+		{
+			IFileInfo catalogFile = (IFileInfo)arguments["CatalogFile"];
+			if (!catalogFile.Exists) { throw new CommandLineArgumentException("<CatalogFile>", "Catalog file does not exist."); }
+
+			Catalog originalCatalog = Catalog.Read(catalogFile);
+			IDirectoryInfo catalogedDirectory = catalogFile.Directory;
+			if (!catalogedDirectory.FullName.Equals(this.fileSystem.DirectoryInfo.FromDirectoryName(originalCatalog.BaseDirectoryPath).FullName, StringComparison.OrdinalIgnoreCase))
+			{
+				throw new CommandLineArgumentException("<CatalogFile>", "Catalog file was moved and does not represent a catalog of the directory it is currently in. Cannot check.");
+			}
+
+			IFileInfo tempCatalogFile = this.fileSystem.FileInfo.FromFileName(this.fileSystem.Path.Combine(this.fileSystem.Path.GetTempPath(), "kcatalog_" + this.fileSystem.Path.GetRandomFileName() + ".kcatalog"));
+			Catalog newCatalog = this.catalogCreateCore(catalogedDirectory, tempCatalogFile);
+			this.log($"Temporary catalog file: {tempCatalogFile}");
+			
+			// Compare original and new catalog for same file paths with different hashes, ignore any files that do not exist in the other.
+			int modifiedFileCount = 0;
+			foreach (FileInstance originalFileInstance in originalCatalog.FileInstances)
+			{
+				if (!newCatalog.FileInstancesByPath.TryGetValue(originalFileInstance.RelativePath, out FileInstance newFileInstance)) { continue; }
+
+				if (!originalFileInstance.FileContentsHash.Equals(newFileInstance.FileContentsHash))
+				{
+					this.log(originalFileInstance.RelativePath);
+					modifiedFileCount++;
+				}
+			}
+
+			this.log($"Found {modifiedFileCount} modified files.");
 		}
 
 		private void commandCatalogCompareDuplicates(Dictionary<string, object> arguments)
