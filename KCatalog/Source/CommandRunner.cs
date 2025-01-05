@@ -53,6 +53,9 @@ namespace KCatalog
 				{ "catalog-check-file-integrity", new Tuple<Action<Dictionary<string, object>>, string, string>(this.commandCatalogCheckFileIntegrity, "<CatalogFile>",
 					"Checks all files in the directory of <CatalogFile> and its subdirectories that are already in the catalog, and confirms that they haven't changed. This command checks the contents and hashes of existing already cataloged files, listing those that changed, it will not check for new files. The catalog will not be updated, only modified files will be listed. Useful to check for file corruption or modified files.") },
 
+				{ "catalog-check-file-integrity-from-backup", new Tuple<Action<Dictionary<string, object>>, string, string>(this.commandCatalogCheckFileIntegrityFromBackup, "<BaseCatalogFile> <ReadOnlyCatalogDirectory>",
+					"Checks all files in the directory of <CatalogFile> and its subdirectories that are already in the catalog, and confirms that they haven't changed compared to the copies already backed up in any of the catalogs in <ReadOnlyCatalogDirectory>. This command checks the contents and hashes of existing already cataloged files, listing those that changed, it will not check for new files. The catalog will not be updated, only modified or renamed files will be listed. Useful to check for file corruption or modified files. This assumes you've updated the catalog to detect changes to files. Files are cross referenced by path then compared by hash.") },
+
 				{ "catalog-compare-duplicates", new Tuple<Action<Dictionary<string, object>>, string, string>(this.commandCatalogCompareDuplicates, "[--delete] <BaseCatalogFile> <OtherCatalogFile>",
 					"Finds all files in <OtherCatalogFile> that are already cataloged by <BaseCatalogFile> (i.e. files in <OtherCatalogFile> that duplicate files in <BaseCatalogFile>). This ignores file paths and file names, it only compares file contents/hashes (so files are considered duplicate if they have the same content but different file names). This command will list the duplicated files that are found. If --delete is specified the duplicated files will also be deleted from the directory of <OtherCatalogFile>. This is the same as 'dir-compare-duplicates' but faster since the cataloging has already been done. Be sure both catalogs are up-to-date (using 'catalog-create' or 'catalog-update').") },
 
@@ -408,7 +411,7 @@ namespace KCatalog
 			IFileInfo tempCatalogFile = this.fileSystem.FileInfo.FromFileName(this.fileSystem.Path.Combine(this.fileSystem.Path.GetTempPath(), "kcatalog_" + this.fileSystem.Path.GetRandomFileName() + ".kcatalog"));
 			Catalog newCatalog = this.catalogCreateCore(catalogedDirectory, tempCatalogFile);
 			this.log($"Temporary catalog file: {tempCatalogFile}");
-			
+
 			// Compare original and new catalog for same file paths with different hashes, ignore any files that do not exist in the other.
 			int modifiedFileCount = 0;
 			foreach (FileInstance originalFileInstance in originalCatalog.FileInstances)
@@ -423,6 +426,56 @@ namespace KCatalog
 			}
 
 			this.log($"Found {modifiedFileCount} modified files.");
+		}
+
+		private void commandCatalogCheckFileIntegrityFromBackup(Dictionary<string, object> arguments)
+		{
+			IFileInfo baseCatalogFile = (IFileInfo)arguments["BaseCatalogFile"];
+			if (!baseCatalogFile.Exists) { throw new CommandLineArgumentException("<BaseCatalogFile>", "Catalog file does not exist."); }
+			IDirectoryInfo readOnlyCatalogDirectory = (IDirectoryInfo)arguments["ReadOnlyCatalogDirectory"];
+			if (!readOnlyCatalogDirectory.Exists) { throw new CommandLineArgumentException("<ReadOnlyCatalogDirectory>", "Directory does not exist."); }
+
+			Catalog baseCatalog = Catalog.Read(baseCatalogFile);
+			List<Tuple<IFileInfo, Catalog>> readOnlyCatalogs = readOnlyCatalogDirectory.GetFiles("*.kcatalog", System.IO.SearchOption.TopDirectoryOnly)
+				.Select((catalogFile) => Tuple.Create(catalogFile, Catalog.Read(catalogFile)))
+				.ToList();
+
+			foreach (FileInstance fileInstance in baseCatalog.FileInstances
+				.OrderBy((instance) => instance.RelativePath))
+			{
+				// Some backup disks have a parent "Photos" directory that we need to check under
+				string pathInBackup1 = fileInstance.RelativePath;
+				string pathInBackup2 = this.fileSystem.Path.Combine("Photos", fileInstance.RelativePath);
+
+				bool foundMatchInBackup = false;
+				foreach (Tuple<IFileInfo, Catalog> readOnlyCatalog in readOnlyCatalogs)
+				{
+					FileInstance otherFileInstance;
+					if (readOnlyCatalog.Item2.FileInstancesByPath.TryGetValue(pathInBackup1, out otherFileInstance) ||
+						readOnlyCatalog.Item2.FileInstancesByPath.TryGetValue(pathInBackup2, out otherFileInstance))
+					{
+						if (fileInstance.FileContentsHash.Equals(otherFileInstance.FileContentsHash))
+						{
+							foundMatchInBackup = true;
+						}
+						else
+						{
+							this.log($"Modified: {fileInstance.RelativePath} (from {readOnlyCatalog.Item1.Name})");
+						}
+					}
+				}
+
+				if (!foundMatchInBackup)
+				{
+					foreach (Tuple<IFileInfo, Catalog> readOnlyCatalog in readOnlyCatalogs)
+					{
+						if (readOnlyCatalog.Item2.FileInstancesByHash.TryGetValue(fileInstance.FileContentsHash, out IReadOnlyList<FileInstance> otherFileInstances))
+						{
+							this.log($"Renamed: {fileInstance.RelativePath} (at {otherFileInstances.First().RelativePath} from {readOnlyCatalog.Item1.Name})");
+						}
+					}
+				}
+			}
 		}
 
 		private void commandCatalogCompareDuplicates(Dictionary<string, object> arguments)
