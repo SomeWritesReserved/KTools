@@ -354,6 +354,8 @@ namespace KCatalog
 				}
 			}
 
+			long numberOfNewFilesAdded = 0;
+			long totalSizeOfNewFilesAdded = 0;
 			foreach (KeyValuePair<string, IFileInfo> leftOverFile in foundFiles.OrderBy((kvp) => kvp.Key))
 			{
 				FileInstance fileInstance = this.createFileInstance(catalogedDirectory, leftOverFile.Value);
@@ -365,11 +367,15 @@ namespace KCatalog
 				else
 				{
 					this.log($"New file added   : {leftOverFile.Key}");
+					numberOfNewFilesAdded++;
+					totalSizeOfNewFilesAdded += leftOverFile.Value.Length;
 				}
 				newFileInstances.Add(fileInstance);
 				hasChanges = true;
 			}
 
+			long numberOfDeletedFiles = 0;
+			long totalSizeOfDeletedFiles = 0;
 			if (hasChanges)
 			{
 				Catalog updatedCatalog = new Catalog(originalCatalog.BaseDirectoryPath, originalCatalog.CatalogedOn, DateTime.Now, newFileInstances);
@@ -386,6 +392,8 @@ namespace KCatalog
 					{
 						// No duplicates, no newly files to be a move, it is truly removed
 						this.log($"File deleted     : {removedFileInstance.RelativePath}");
+						numberOfDeletedFiles++;
+						totalSizeOfDeletedFiles += removedFileInstance.FileSize;
 					}
 				}
 
@@ -393,6 +401,8 @@ namespace KCatalog
 				{
 					updatedCatalog.Write(catalogFile);
 				}
+
+				this.log($"{numberOfNewFilesAdded} new files added ({totalSizeOfNewFilesAdded} bytes). {numberOfDeletedFiles} files deleted ({totalSizeOfDeletedFiles} bytes).");
 			}
 		}
 

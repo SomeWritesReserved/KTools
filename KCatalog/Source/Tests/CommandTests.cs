@@ -139,10 +139,11 @@ namespace KCatalog.Tests
 			System.Threading.Thread.Sleep(10);
 			new CommandRunner(fileSystem, System.IO.TextWriter.Null, System.IO.TextReader.Null).Run(new[] { "catalog-update", "--log", @"C:\folderA\.kcatalog" });
 			string[] logLines = this.getLogLines(fileSystem);
-			Assert.AreEqual(3, logLines.Length);
+			Assert.AreEqual(4, logLines.Length);
 			Assert.AreEqual(@"New file added   : newfile1.txt", logLines[0]);
 			Assert.AreEqual(@"New file added   : subdirW\newfile2.txt", logLines[1]);
 			Assert.AreEqual(@"Duplicate removed: file3.txt (from subdirX\file3.txt)", logLines[2]);
+			Assert.AreEqual(@"2 new files added (13 bytes). 0 files deleted (0 bytes).", logLines[3]);
 			Catalog catalog = Catalog.Read(fileSystem.FileInfo.FromFileName(@"C:\folderA\.kcatalog"));
 			Assert.AreNotEqual(catalog.CatalogedOn, catalog.UpdatedOn);
 			Assert.AreEqual(@"C:\folderA", catalog.BaseDirectoryPath);
@@ -172,8 +173,9 @@ namespace KCatalog.Tests
 			fileSystem.File.Delete(@"C:\folderA\file1.txt");
 			new CommandRunner(fileSystem, System.IO.TextWriter.Null, System.IO.TextReader.Null).Run(new[] { "catalog-update", "--log", @"C:\folderA\.kcatalog" });
 			string[] logLines = this.getLogLines(fileSystem);
-			Assert.AreEqual(1, logLines.Length);
+			Assert.AreEqual(2, logLines.Length);
 			Assert.AreEqual(@"File deleted     : file1.txt", logLines[0]);
+			Assert.AreEqual(@"0 new files added (0 bytes). 1 files deleted (5 bytes).", logLines[1]);
 		}
 
 		public void CatalogUpdateA_Changes_MovedFile()
@@ -183,8 +185,9 @@ namespace KCatalog.Tests
 			fileSystem.File.Move(@"C:\folderA\file3.txt", @"C:\folderA\newname.txt");
 			new CommandRunner(fileSystem, System.IO.TextWriter.Null, System.IO.TextReader.Null).Run(new[] { "catalog-update", "--log", @"C:\folderA\.kcatalog" });
 			string[] logLines = this.getLogLines(fileSystem);
-			Assert.AreEqual(1, logLines.Length);
+			Assert.AreEqual(2, logLines.Length);
 			Assert.AreEqual(@"File moved       : newname.txt (from file3.txt)", logLines[0]);
+			Assert.AreEqual(@"0 new files added (0 bytes). 0 files deleted (0 bytes).", logLines[1]);
 		}
 
 		public void CatalogCheckA_Changes_DryRun()
@@ -197,10 +200,11 @@ namespace KCatalog.Tests
 			fileSystem.File.Delete(@"C:\folderA\file3.txt");
 			new CommandRunner(fileSystem, System.IO.TextWriter.Null, System.IO.TextReader.Null).Run(new[] { "catalog-update", "--log", "--dryrun", @"C:\folderA\.kcatalog" });
 			string[] logLines = this.getLogLines(fileSystem);
-			Assert.AreEqual(3, logLines.Length);
+			Assert.AreEqual(4, logLines.Length);
 			Assert.AreEqual(@"New file added   : newfile1.txt", logLines[0]);
 			Assert.AreEqual(@"New file added   : subdirW\newfile2.txt", logLines[1]);
 			Assert.AreEqual(@"Duplicate removed: file3.txt (from subdirX\file3.txt)", logLines[2]);
+			Assert.AreEqual(@"2 new files added (16 bytes). 0 files deleted (0 bytes).", logLines[3]);
 			Catalog catalog = Catalog.Read(fileSystem.FileInfo.FromFileName(@"C:\folderA\.kcatalog"));
 			Assert.AreEqual(catalog.CatalogedOn, catalog.UpdatedOn);
 		}
